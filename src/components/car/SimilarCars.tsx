@@ -30,11 +30,14 @@ export default async function SimilarCars({ cars }: SimilarCarsProps) {
   if (cars.length === 0) return null;
 
   return (
-    <section className="mt-12">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        {t("similarCars")}
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <section className="mt-20 pt-16 border-t border-gray-200/50">
+      <div className="flex items-center gap-4 mb-8">
+         <div className="h-8 w-2 bg-cyan-500 rounded-full" />
+         <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+           {t("similarCars")}
+         </h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {cars.map((car) => (
           <CarCard key={car.id} car={car} />
         ))}

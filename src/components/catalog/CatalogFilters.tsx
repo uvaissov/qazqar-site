@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useRouter, usePathname } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { SlidersHorizontal, X, ChevronDown, Filter } from "lucide-react";
 
 type Brand = {
   id: string;
@@ -45,80 +46,76 @@ export default function CatalogFilters({ brands }: { brands: Brand[] }) {
     currentBrand || currentMinPrice || currentMaxPrice || currentTransmission;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6">
-      <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+    <div className="glass rounded-[2rem] p-6 md:p-8 transition-all duration-500 shadow-xl shadow-cyan-100/20">
+      <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-4">
+         <SlidersHorizontal className="w-5 h-5 text-cyan-600" />
+         <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">{t("found").split(":")[0]}</h2>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
         {/* Brand select */}
-        <div className="flex-1 min-w-0">
+        <div className="space-y-2">
           <label
             htmlFor="brand-filter"
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
           >
             {t("brandLabel")}
           </label>
-          <select
-            id="brand-filter"
-            value={currentBrand}
-            onChange={(e) => updateParams({ brand: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
-          >
-            <option value="">{t("allBrands")}</option>
-            {brands.map((brand) => (
-              <option key={brand.id} value={brand.slug}>
-                {brand.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative group">
+            <select
+              id="brand-filter"
+              value={currentBrand}
+              onChange={(e) => updateParams({ brand: e.target.value })}
+              className="w-full appearance-none bg-white rounded-2xl border-2 border-gray-100 px-4 py-4 text-sm font-bold text-gray-900 focus:border-cyan-500 focus:outline-none transition-all group-hover:border-gray-200 cursor-pointer"
+            >
+              <option value="">{t("allBrands")}</option>
+              {brands.map((brand) => (
+                <option key={brand.id} value={brand.slug}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none group-hover:text-cyan-600 transition-colors" />
+          </div>
         </div>
 
-        {/* Min price */}
-        <div className="flex-1 min-w-0">
-          <label
-            htmlFor="min-price"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            {t("priceFrom")}
-          </label>
-          <input
-            id="min-price"
-            type="number"
-            value={currentMinPrice}
-            placeholder={t("pricePlaceholderMin")}
-            onChange={(e) => updateParams({ minPrice: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
-          />
-        </div>
-
-        {/* Max price */}
-        <div className="flex-1 min-w-0">
-          <label
-            htmlFor="max-price"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            {t("priceTo")}
-          </label>
-          <input
-            id="max-price"
-            type="number"
-            value={currentMaxPrice}
-            placeholder={t("pricePlaceholderMax")}
-            onChange={(e) => updateParams({ maxPrice: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
-          />
+        {/* Price Range - Combined look */}
+        <div className="lg:col-span-1 space-y-2">
+           <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
+             {t("priceFrom")} — {t("priceTo")}
+           </label>
+           <div className="flex items-center gap-2 bg-white rounded-2xl border-2 border-gray-100 px-2 py-1 group hover:border-gray-200 focus-within:!border-cyan-500 transition-all">
+              <input
+                type="number"
+                value={currentMinPrice}
+                placeholder={t("pricePlaceholderMin")}
+                onChange={(e) => updateParams({ minPrice: e.target.value })}
+                className="w-full bg-transparent border-none px-3 py-3 text-sm font-bold text-gray-900 focus:ring-0 focus:outline-none placeholder:text-gray-300"
+              />
+              <div className="h-6 w-px bg-gray-100" />
+              <input
+                type="number"
+                value={currentMaxPrice}
+                placeholder={t("pricePlaceholderMax")}
+                onChange={(e) => updateParams({ maxPrice: e.target.value })}
+                className="w-full bg-transparent border-none px-3 py-3 text-sm font-bold text-gray-900 focus:ring-0 focus:outline-none placeholder:text-gray-300 text-right"
+              />
+           </div>
         </div>
 
         {/* Transmission toggle */}
-        <div className="flex-1 min-w-0">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="space-y-2">
+          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
             {t("transmissionLabel")}
           </label>
-          <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+          <div className="flex p-1 bg-gray-50 rounded-2xl border-2 border-gray-100 group-hover:border-gray-200 transition-all">
             <button
               type="button"
               onClick={() => updateParams({ transmission: "" })}
-              className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex-1 px-4 py-3 text-xs font-black uppercase tracking-tighter rounded-xl transition-all ${
                 !currentTransmission
-                  ? "bg-cyan-500 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
+                  ? "bg-white text-cyan-600 shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
               {t("transmissionAll")}
@@ -126,40 +123,46 @@ export default function CatalogFilters({ brands }: { brands: Brand[] }) {
             <button
               type="button"
               onClick={() => updateParams({ transmission: "AUTOMATIC" })}
-              className={`flex-1 px-3 py-2.5 text-sm font-medium border-x border-gray-300 transition-colors ${
+              className={`flex-1 px-4 py-3 text-xs font-black uppercase tracking-tighter rounded-xl transition-all ${
                 currentTransmission === "AUTOMATIC"
-                  ? "bg-cyan-500 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
+                  ? "bg-white text-cyan-600 shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
-              {t("transmissionAutomatic")}
+              {t("transmissionAutomatic").substring(0, 4)}
             </button>
             <button
               type="button"
               onClick={() => updateParams({ transmission: "MANUAL" })}
-              className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex-1 px-4 py-3 text-xs font-black uppercase tracking-tighter rounded-xl transition-all ${
                 currentTransmission === "MANUAL"
-                  ? "bg-cyan-500 text-white"
-                  : "bg-white text-gray-700 hover:bg-gray-50"
+                  ? "bg-white text-cyan-600 shadow-sm"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
-              {t("transmissionManual")}
+              {t("transmissionManual").substring(0, 4)}
             </button>
           </div>
         </div>
 
         {/* Reset button */}
-        {hasActiveFilters && (
-          <div className="flex-shrink-0">
+        <div className="flex-shrink-0">
+           {hasActiveFilters ? (
             <button
               type="button"
               onClick={resetFilters}
-              className="w-full lg:w-auto px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="w-full px-6 py-4 flex items-center justify-center gap-2 bg-rose-50 text-rose-600 font-bold rounded-2xl hover:bg-rose-100 transition-all group/reset"
             >
+              <X className="w-5 h-5 group-reset-hover:rotate-90 transition-transform duration-300" />
               {t("reset")}
             </button>
-          </div>
-        )}
+           ) : (
+            <div className="w-full px-6 py-4 flex items-center justify-center gap-2 bg-cyan-600 text-white font-bold rounded-2xl opacity-50 cursor-default">
+              <Filter className="w-5 h-5" />
+              Фильтр
+            </div>
+           )}
+        </div>
       </div>
     </div>
   );

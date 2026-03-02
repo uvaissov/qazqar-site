@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { Quote, Star } from "lucide-react";
 
 type Review = {
   id: string;
@@ -10,18 +11,14 @@ type Review = {
 
 function StarRating({ rating }: { rating: number }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-1">
       {Array.from({ length: 5 }, (_, i) => (
-        <svg
+        <Star
           key={i}
           className={`w-4 h-4 ${
-            i < rating ? "text-yellow-400" : "text-gray-300"
+            i < rating ? "text-yellow-400 fill-yellow-400" : "text-gray-200"
           }`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
+        />
       ))}
     </div>
   );
@@ -37,38 +34,66 @@ export default async function ReviewsSection({
   if (reviews.length === 0) return null;
 
   return (
-    <section id="reviews" className="py-16 md:py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4">
+    <section id="reviews" className="py-24 md:py-32 bg-gray-50/30 overflow-hidden relative">
+      {/* Decorative background */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-100/20 rounded-full blur-3xl" />
+      
+      <div className="max-w-7xl mx-auto px-4 relative">
         {/* Section header */}
-        <div className="text-center mb-12">
-          <span className="text-cyan-500 font-semibold text-sm uppercase tracking-wider">
-            {t("sectionTitle")}
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">
-            {t("title")}
-          </h2>
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+          <div className="max-w-2xl">
+            <span className="text-cyan-500 font-bold uppercase tracking-widest text-sm">
+              {t("sectionTitle")}
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mt-2 tracking-tight">
+              {t("title")}
+            </h2>
+          </div>
+          <div className="flex gap-2 mb-2">
+             {[...Array(3)].map((_, i) => (
+               <div key={i} className={`h-2 rounded-full bg-cyan-500 ${i === 0 ? 'w-8' : 'w-2 opacity-20'}`} />
+             ))}
+          </div>
         </div>
 
-        {/* Reviews grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reviews.map((review) => (
+        {/* Reviews grid - Masonry-like with Bento Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {reviews.map((review, index) => (
             <div
               key={review.id}
-              className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+              className={`group relative glass rounded-[2.5rem] p-8 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-100/50 ${
+                index % 3 === 1 ? 'md:mt-8' : ''
+              }`}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  {/* Avatar placeholder */}
-                  <div className="w-10 h-10 bg-cyan-100 text-cyan-600 rounded-full flex items-center justify-center font-semibold text-sm">
-                    {review.authorName.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {review.authorName}
-                  </span>
-                </div>
-                <StarRating rating={review.rating} />
+              <div className="absolute top-6 right-8 text-cyan-100 group-hover:text-cyan-200 transition-colors">
+                 <Quote size={40} strokeWidth={3} />
               </div>
-              <p className="text-gray-600 leading-relaxed">{review.textRu}</p>
+
+              <div className="flex items-center gap-4 mb-6 relative z-10">
+                {/* Avatar */}
+                <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-cyan-200">
+                  {review.authorName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900 text-lg">
+                    {review.authorName}
+                  </h4>
+                  <StarRating rating={review.rating} />
+                </div>
+              </div>
+
+              <p className="text-gray-600 leading-relaxed text-lg italic relative z-10">
+                &quot;{review.textRu}&quot;
+              </p>
+              
+              <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                 <span className="text-xs font-bold text-cyan-600 uppercase tracking-widest">Проверенный отзыв</span>
+                 <div className="w-5 h-5 bg-cyan-500 rounded-full flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                       <path d="M5 13l4 4L19 7" />
+                    </svg>
+                 </div>
+              </div>
             </div>
           ))}
         </div>
