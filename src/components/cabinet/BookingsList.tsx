@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Link } from "@/i18n/routing";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 
 type Booking = {
@@ -28,6 +28,8 @@ const statusColors: Record<string, string> = {
 
 export default function BookingsList({ bookings }: { bookings: Booking[] }) {
   const t = useTranslations("cabinet");
+  const locale = useLocale();
+  const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
   const router = useRouter();
   const [cancelling, setCancelling] = useState<string | null>(null);
 
@@ -65,8 +67,8 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
   return (
     <div className="space-y-4">
       {bookings.map((booking) => {
-        const start = new Date(booking.startDate).toLocaleDateString("ru-RU");
-        const end = new Date(booking.endDate).toLocaleDateString("ru-RU");
+        const start = new Date(booking.startDate).toLocaleDateString(dateLocale);
+        const end = new Date(booking.endDate).toLocaleDateString(dateLocale);
 
         return (
           <div

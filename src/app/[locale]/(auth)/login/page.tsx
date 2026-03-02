@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import LoginForm from "@/components/auth/LoginForm";
 
-export const metadata: Metadata = {
-  title: "Вход — Qazqar",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: locale === "kz" ? "Кіру — Qazqar" : "Вход — Qazqar",
+  };
+}
 
 export default function LoginPage() {
   return (

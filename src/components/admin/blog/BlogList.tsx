@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 
 interface BlogPost {
@@ -24,6 +24,8 @@ interface BlogListProps {
 export default function BlogList({ posts }: BlogListProps) {
   const router = useRouter();
   const t = useTranslations("adminContent");
+  const locale = useLocale();
+  const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
@@ -81,7 +83,7 @@ export default function BlogList({ posts }: BlogListProps) {
                     {post.titleRu}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {new Date(post.createdAt).toLocaleDateString("ru-RU")}
+                    {new Date(post.createdAt).toLocaleDateString(dateLocale)}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">

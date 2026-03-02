@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getCarBySlug, getSimilarCars } from "@/lib/data/cars";
 import { getDiscounts } from "@/lib/data/content";
 import CarGallery from "@/components/car/CarGallery";
@@ -12,15 +13,20 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string; slug: string }>;
 }) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
   const car = await getCarBySlug(slug);
   if (!car) return {};
 
-  const title = `${car.model.brand.name} ${car.model.name} ${car.year} — Аренда в Астане | Qazqar`;
-  return {
-    title,
-    description: `Аренда ${car.model.brand.name} ${car.model.name} от ${car.pricePerDay} ₸/сутки`,
-  };
+  const brandModel = `${car.model.brand.name} ${car.model.name}`;
+  const title =
+    locale === "kz"
+      ? `${brandModel} ${car.year} — Астанада жалға алу | Qazqar`
+      : `${brandModel} ${car.year} — Аренда в Астане | Qazqar`;
+  const description =
+    locale === "kz"
+      ? `${brandModel} жалға алу, тәулігіне ${car.pricePerDay} ₸`
+      : `Аренда ${brandModel} от ${car.pricePerDay} ₸/сутки`;
+  return { title, description };
 }
 
 export default async function CarDetailPage({
@@ -33,9 +39,10 @@ export default async function CarDetailPage({
   const car = await getCarBySlug(slug);
   if (!car) notFound();
 
-  const [similarCars, discounts] = await Promise.all([
+  const [similarCars, discounts, t] = await Promise.all([
     getSimilarCars(car.id, car.modelId),
     getDiscounts(),
+    getTranslations("nav"),
   ]);
 
   const title = `${car.model.brand.name} ${car.model.name} ${car.year}`;
@@ -47,7 +54,7 @@ export default async function CarDetailPage({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <nav className="flex items-center gap-2 text-sm text-gray-500">
             <Link href="/catalog" className="hover:text-cyan-500 transition-colors">
-              Каталог
+              {t("catalog")}
             </Link>
             <span>/</span>
             <span className="text-gray-900 font-medium">{title}</span>

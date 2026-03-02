@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface Review {
   id: string;
@@ -40,6 +40,8 @@ function StarRating({ rating }: { rating: number }) {
 export default function ReviewsList({ reviews }: ReviewsListProps) {
   const router = useRouter();
   const t = useTranslations("adminContent");
+  const locale = useLocale();
+  const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleToggleApproval = async (id: string, currentApproved: boolean) => {
@@ -118,7 +120,7 @@ export default function ReviewsList({ reviews }: ReviewsListProps) {
                     {review.authorName}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {new Date(review.createdAt).toLocaleDateString("ru-RU")}
+                    {new Date(review.createdAt).toLocaleDateString(dateLocale)}
                   </div>
                 </td>
                 <td className="px-4 py-3">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePathname } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
@@ -66,6 +66,8 @@ export default function BookingsList({
   currentStatus,
 }: BookingsListProps) {
   const t = useTranslations("adminBookings");
+  const locale = useLocale();
+  const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -97,7 +99,7 @@ export default function BookingsList({
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("ru-RU", {
+    return new Date(dateStr).toLocaleDateString(dateLocale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",

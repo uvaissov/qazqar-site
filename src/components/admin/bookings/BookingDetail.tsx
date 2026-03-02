@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 
 interface BookingWithCar {
@@ -50,6 +50,8 @@ type StatusAction = {
 
 export default function BookingDetail({ booking }: BookingDetailProps) {
   const t = useTranslations("adminBookings");
+  const locale = useLocale();
+  const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -65,7 +67,7 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("ru-RU", {
+    return new Date(dateStr).toLocaleDateString(dateLocale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -73,7 +75,7 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
   };
 
   const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("ru-RU", {
+    return new Date(dateStr).toLocaleDateString(dateLocale, {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
