@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CLIENT
+  ADMIN
+}
+
+enum CarStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+}
+
+enum Transmission {
+  AUTOMATIC
+  MANUAL
+}
+
+enum FuelType {
+  AI92
+  AI95
+  AI98
+  DIESEL
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String?   @unique
+  phone        String?   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole  @default(CLIENT)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bookings  Booking[]
+  blogPosts BlogPost[]
+
+  @@map("users")
+}
+
+model CarBrand {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+  logo String?
+
+  models CarModel[]
+
+  @@map("car_brands")
+}
+
+model CarModel {
+  id      String   @id @default(cuid())
+  name    String
+  slug    String   @unique
+  brandId String
+
+  brand CarBrand @relation(fields: [brandId], references: [id])
+  cars  Car[]
+
+  @@map("car_models")
+}
+
+model Car {
+  id            String       @id @default(cuid())
+  modelId       String
+  licensePlate  String       @unique
+  year          Int
+  color         String
+  pricePerDay   Int
+  transmission  Transmission @default(AUTOMATIC)
+  fuelType      FuelType     @default(AI92)
+  seats         Int          @default(5)
+  hasAC         Boolean      @default(true)
+  status        CarStatus    @default(AVAILABLE)
+  images        String[]
+  slug          String       @unique
+  descriptionRu String?
+  descriptionKz String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  model    CarModel  @relation(fields: [modelId], references: [id])
+  bookings Booking[]
+
+  @@map("cars")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  userId          String?
+  carId           String
+  startDate       DateTime
+  endDate         DateTime
+  totalPrice      Int
+  discountPercent Int           @default(0)
+  status          BookingStatus @default(PENDING)
+  customerName    String
+  customerPhone   String
+  comment         String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user User? @relation(fields: [userId], references: [id])
+  car  Car   @relation(fields: [carId], references: [id])
+
+  @@map("bookings")
+}
+
+model BlogPost {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  titleRu   String
+  titleKz   String   @default("")
+  contentRu String
+  contentKz String   @default("")
+  coverImage String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("blog_posts")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  authorName String
+  rating     Int
+  textRu     String
+  textKz     String   @default("")
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@map("reviews")
+}
+
+model Discount {
+  id      String  @id @default(cuid())
+  minDays Int
+  maxDays Int
+  percent Int
+  active  Boolean @default(true)
+
+  @@map("discounts")
+}
+
+model FaqItem {
+  id         String  @id @default(cuid())
+  sortOrder  Int     @default(0)
+  questionRu String
+  questionKz String  @default("")
+  answerRu   String
+  answerKz   String  @default("")
+  published  Boolean @default(true)
+
+  @@map("faq_items")
+}
