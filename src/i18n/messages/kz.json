@@ -372,5 +372,13 @@
     "confirmDelete": "{name} пайдаланушысын жою керек пе?",
     "empty": "Пайдаланушылар жоқ",
     "error": "Қате"
+  },
+  "errors": {
+    "notFoundTitle": "Бет табылмады",
+    "notFoundDescription": "Өкінішке орай, сіз іздеген бет жоқ.",
+    "backHome": "Басты бетке",
+    "errorTitle": "Бірдеңе дұрыс болмады",
+    "errorDescription": "Бетті жүктеу кезінде қате орын алды.",
+    "tryAgain": "Қайта көру"
   }
 }

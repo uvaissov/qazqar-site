@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import type { Transmission } from "@/generated/prisma/enums";
@@ -31,10 +32,11 @@ export default async function CarCard({ car }: { car: CarWithModel }) {
       {/* Car image */}
       <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden">
         {car.images.length > 0 ? (
-          <img
+          <Image
             src={car.images[0]}
             alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-300">

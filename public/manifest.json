@@ -1,0 +1,16 @@
+{
+  "name": "Qazqar — Прокат автомобилей",
+  "short_name": "Qazqar",
+  "description": "Прокат автомобилей без водителей в Астане",
+  "start_url": "/ru",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#06b6d4",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

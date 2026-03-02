@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 
@@ -30,10 +31,11 @@ export default async function BlogCard({ post }: { post: BlogPost }) {
       {/* Cover image */}
       <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden">
         {post.coverImage ? (
-          <img
+          <Image
             src={post.coverImage}
             alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-300">

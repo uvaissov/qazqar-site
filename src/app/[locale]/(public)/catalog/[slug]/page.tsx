@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getCarBySlug, getSimilarCars } from "@/lib/data/cars";
 import { getDiscounts } from "@/lib/data/content";
+import JsonLd from "@/components/seo/JsonLd";
 import CarGallery from "@/components/car/CarGallery";
 import CarSpecs from "@/components/car/CarSpecs";
 import BookingForm from "@/components/car/BookingForm";
@@ -26,7 +27,22 @@ export async function generateMetadata({
     locale === "kz"
       ? `${brandModel} жалға алу, тәулігіне ${car.pricePerDay} ₸`
       : `Аренда ${brandModel} от ${car.pricePerDay} ₸/сутки`;
-  return { title, description };
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: car.images.length > 0 ? [{ url: car.images[0] }] : [],
+    },
+    alternates: {
+      languages: {
+        ru: `/ru/catalog/${car.slug}`,
+        kk: `/kz/catalog/${car.slug}`,
+      },
+    },
+  };
 }
 
 export default async function CarDetailPage({
@@ -48,44 +64,63 @@ export default async function CarDetailPage({
   const title = `${car.model.brand.name} ${car.model.name} ${car.year}`;
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <nav className="flex items-center gap-2 text-sm text-gray-500">
-            <Link href="/catalog" className="hover:text-cyan-500 transition-colors">
-              {t("catalog")}
-            </Link>
-            <span>/</span>
-            <span className="text-gray-900 font-medium">{title}</span>
-          </nav>
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column: Gallery + Specs */}
-          <div className="lg:col-span-2 space-y-8">
-            <CarGallery images={car.images} title={title} />
-            <CarSpecs car={car} />
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: `${car.model.brand.name} ${car.model.name} ${car.year}`,
+          description:
+            car.descriptionRu ||
+            `Аренда ${car.model.brand.name} ${car.model.name} в Астане`,
+          image: car.images[0] || undefined,
+          offers: {
+            "@type": "Offer",
+            price: car.pricePerDay,
+            priceCurrency: "KZT",
+            availability: "https://schema.org/InStock",
+          },
+        }}
+      />
+      <main className="min-h-screen bg-gray-50">
+        {/* Breadcrumb */}
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <nav className="flex items-center gap-2 text-sm text-gray-500">
+              <Link href="/catalog" className="hover:text-cyan-500 transition-colors">
+                {t("catalog")}
+              </Link>
+              <span>/</span>
+              <span className="text-gray-900 font-medium">{title}</span>
+            </nav>
           </div>
+        </div>
 
-          {/* Right column: Booking form */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              <BookingForm
-                carId={car.id}
-                pricePerDay={car.pricePerDay}
-                discounts={discounts}
-              />
+        {/* Main content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left column: Gallery + Specs */}
+            <div className="lg:col-span-2 space-y-8">
+              <CarGallery images={car.images} title={title} />
+              <CarSpecs car={car} />
+            </div>
+
+            {/* Right column: Booking form */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-8">
+                <BookingForm
+                  carId={car.id}
+                  pricePerDay={car.pricePerDay}
+                  discounts={discounts}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Similar cars */}
-        <SimilarCars cars={similarCars} />
-      </div>
-    </main>
+          {/* Similar cars */}
+          <SimilarCars cars={similarCars} />
+        </div>
+      </main>
+    </>
   );
 }
