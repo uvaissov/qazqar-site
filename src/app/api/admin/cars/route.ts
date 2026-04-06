@@ -11,7 +11,7 @@ export async function GET() {
 
   try {
     const cars = await prisma.car.findMany({
-      include: { model: { include: { brand: true } } },
+      include: { model: { include: { brand: true } }, photos: { include: { photo: true }, orderBy: { sortOrder: "asc" } } },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(cars);
@@ -35,22 +35,24 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       modelId,
-      licensePlate,
+      inventoryId,
+      number,
+      techPassport,
+      vin,
       year,
       color,
-      pricePerDay,
+      totalDistance,
       transmission,
       fuelType,
       seats,
       hasAC,
       status,
-      images,
       slug,
       descriptionRu,
       descriptionKz,
     } = body;
 
-    if (!modelId || !licensePlate || !year || !color || !pricePerDay || !slug) {
+    if (!modelId || !number || !year || !color || !slug) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
 
     const existing = await prisma.car.findFirst({
       where: {
-        OR: [{ licensePlate }, { slug }],
+        OR: [{ number }, { slug }],
       },
     });
 
@@ -67,8 +69,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            existing.licensePlate === licensePlate
-              ? "License plate already exists"
+            existing.number === number
+              ? "Car number already exists"
               : "Slug already exists",
         },
         { status: 400 }
@@ -78,16 +80,18 @@ export async function POST(request: Request) {
     const car = await prisma.car.create({
       data: {
         modelId,
-        licensePlate,
+        inventoryId: Number(inventoryId) || 0,
+        number,
+        techPassport: techPassport || null,
+        vin: vin || null,
         year: Number(year),
         color,
-        pricePerDay: Number(pricePerDay),
+        totalDistance: Number(totalDistance) || 0,
         transmission: transmission || "AUTOMATIC",
         fuelType: fuelType || "AI92",
         seats: Number(seats) || 5,
         hasAC: hasAC ?? true,
         status: status || "AVAILABLE",
-        images: images || [],
         slug,
         descriptionRu: descriptionRu || null,
         descriptionKz: descriptionKz || null,

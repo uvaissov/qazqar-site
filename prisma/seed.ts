@@ -25,102 +25,9 @@ async function main() {
   });
   console.log(`Admin user: ${admin.email}`);
 
-  // 2. Car brands
-  const hyundai = await prisma.carBrand.upsert({
-    where: { slug: 'hyundai' },
-    update: {},
-    create: { name: 'Hyundai', slug: 'hyundai' },
-  });
+  // Бренды, модели и авто заполняются из API (синхронизация с Yume Cloud CRM)
 
-  const kia = await prisma.carBrand.upsert({
-    where: { slug: 'kia' },
-    update: {},
-    create: { name: 'KIA', slug: 'kia' },
-  });
-
-  const toyota = await prisma.carBrand.upsert({
-    where: { slug: 'toyota' },
-    update: {},
-    create: { name: 'Toyota', slug: 'toyota' },
-  });
-
-  console.log(`Brands: ${hyundai.name}, ${kia.name}, ${toyota.name}`);
-
-  // 3. Car models
-  const accent = await prisma.carModel.upsert({
-    where: { slug: 'accent' },
-    update: {},
-    create: { name: 'Accent', slug: 'accent', brandId: hyundai.id },
-  });
-
-  const elantra = await prisma.carModel.upsert({
-    where: { slug: 'elantra' },
-    update: {},
-    create: { name: 'Elantra', slug: 'elantra', brandId: hyundai.id },
-  });
-
-  const sonata = await prisma.carModel.upsert({
-    where: { slug: 'sonata' },
-    update: {},
-    create: { name: 'Sonata', slug: 'sonata', brandId: hyundai.id },
-  });
-
-  const k5 = await prisma.carModel.upsert({
-    where: { slug: 'k5' },
-    update: {},
-    create: { name: 'K5', slug: 'k5', brandId: kia.id },
-  });
-
-  const camry = await prisma.carModel.upsert({
-    where: { slug: 'camry' },
-    update: {},
-    create: { name: 'Camry', slug: 'camry', brandId: toyota.id },
-  });
-
-  console.log(`Models: ${accent.name}, ${elantra.name}, ${sonata.name}, ${k5.name}, ${camry.name}`);
-
-  // 4. Cars
-  const carsData = [
-    { modelId: k5.id, year: 2021, color: 'White', pricePerDay: 32000, fuelType: 'AI95' as const, licensePlate: 'K5-2021-W', slug: 'kia-k5-2021-white' },
-    { modelId: accent.id, year: 2021, color: 'White', pricePerDay: 16000, fuelType: 'AI92' as const, licensePlate: 'H465301', slug: 'hyundai-accent-2021-h465301' },
-    { modelId: sonata.id, year: 2022, color: 'Black', pricePerDay: 35000, fuelType: 'AI95' as const, licensePlate: '736BJ02', slug: 'hyundai-sonata-2022-black' },
-    { modelId: accent.id, year: 2021, color: 'White', pricePerDay: 16000, fuelType: 'AI92' as const, licensePlate: 'H482501', slug: 'hyundai-accent-2021-h482501' },
-    { modelId: elantra.id, year: 2021, color: 'White', pricePerDay: 20000, fuelType: 'AI92' as const, licensePlate: 'H460501', slug: 'hyundai-elantra-2021-h460501' },
-    { modelId: elantra.id, year: 2021, color: 'White', pricePerDay: 20000, fuelType: 'AI92' as const, licensePlate: 'H477601', slug: 'hyundai-elantra-2021-h477601' },
-    { modelId: camry.id, year: 2016, color: 'White', pricePerDay: 25000, fuelType: 'AI95' as const, licensePlate: '638AFM01', slug: 'toyota-camry-2016-white' },
-    { modelId: accent.id, year: 2021, color: 'White', pricePerDay: 16000, fuelType: 'AI92' as const, licensePlate: 'H508401', slug: 'hyundai-accent-2021-h508401' },
-    { modelId: accent.id, year: 2017, color: 'White', pricePerDay: 14000, fuelType: 'AI92' as const, licensePlate: '276CH01', slug: 'hyundai-accent-2017-white' },
-    { modelId: elantra.id, year: 2023, color: 'White', pricePerDay: 22000, fuelType: 'AI92' as const, licensePlate: '598AJV01', slug: 'hyundai-elantra-2023-white' },
-    { modelId: accent.id, year: 2023, color: 'White', pricePerDay: 18000, fuelType: 'AI92' as const, licensePlate: '678CR01', slug: 'hyundai-accent-2023-678cr01' },
-    { modelId: accent.id, year: 2018, color: 'White', pricePerDay: 14000, fuelType: 'AI92' as const, licensePlate: '348CI01', slug: 'hyundai-accent-2018-white' },
-    { modelId: accent.id, year: 2023, color: 'White', pricePerDay: 18000, fuelType: 'AI92' as const, licensePlate: '546CQ01', slug: 'hyundai-accent-2023-546cq01' },
-  ];
-
-  let carsCreated = 0;
-  for (const car of carsData) {
-    await prisma.car.upsert({
-      where: { licensePlate: car.licensePlate },
-      update: {},
-      create: {
-        modelId: car.modelId,
-        year: car.year,
-        color: car.color,
-        pricePerDay: car.pricePerDay,
-        transmission: 'AUTOMATIC',
-        fuelType: car.fuelType,
-        seats: 5,
-        hasAC: true,
-        status: 'AVAILABLE',
-        images: [],
-        licensePlate: car.licensePlate,
-        slug: car.slug,
-      },
-    });
-    carsCreated++;
-  }
-  console.log(`Cars: ${carsCreated} upserted`);
-
-  // 5. Discounts
+  // 2. Discounts
   await prisma.discount.deleteMany();
   const discountsData = [
     { minDays: 3, maxDays: 5, percent: 10 },
@@ -252,9 +159,6 @@ async function main() {
   // Summary
   const counts = {
     users: await prisma.user.count(),
-    brands: await prisma.carBrand.count(),
-    models: await prisma.carModel.count(),
-    cars: await prisma.car.count(),
     discounts: await prisma.discount.count(),
     faqItems: await prisma.faqItem.count(),
     reviews: await prisma.review.count(),
@@ -262,9 +166,6 @@ async function main() {
 
   console.log('\n--- Seed Summary ---');
   console.log(`Users:     ${counts.users}`);
-  console.log(`Brands:    ${counts.brands}`);
-  console.log(`Models:    ${counts.models}`);
-  console.log(`Cars:      ${counts.cars}`);
   console.log(`Discounts: ${counts.discounts}`);
   console.log(`FAQ Items: ${counts.faqItems}`);
   console.log(`Reviews:   ${counts.reviews}`);

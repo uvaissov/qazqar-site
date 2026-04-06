@@ -1,19 +1,23 @@
 import { prisma } from "@/lib/prisma";
 
+const carInclude = {
+  model: { include: { brand: true } },
+  photos: { include: { photo: true }, orderBy: { sortOrder: "asc" as const } },
+};
+
+// Helper: extract image URLs from car photos relation
+export function getCarImages(car: { photos: { photo: { url: string } }[] }): string[] {
+  return car.photos.map((cp) => cp.photo.url);
+}
+
 export async function getCars(filters?: {
   brandSlug?: string;
-  minPrice?: number;
-  maxPrice?: number;
   transmission?: string;
 }) {
-  const where: any = { status: "AVAILABLE" };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {};
   if (filters?.brandSlug) {
     where.model = { brand: { slug: filters.brandSlug } };
-  }
-  if (filters?.minPrice || filters?.maxPrice) {
-    where.pricePerDay = {};
-    if (filters.minPrice) where.pricePerDay.gte = filters.minPrice;
-    if (filters.maxPrice) where.pricePerDay.lte = filters.maxPrice;
   }
   if (filters?.transmission) {
     where.transmission = filters.transmission;
@@ -21,15 +25,15 @@ export async function getCars(filters?: {
 
   return prisma.car.findMany({
     where,
-    include: { model: { include: { brand: true } } },
-    orderBy: { pricePerDay: "asc" },
+    include: carInclude,
+    orderBy: { createdAt: "desc" },
   });
 }
 
 export async function getCarBySlug(slug: string) {
   return prisma.car.findUnique({
     where: { slug },
-    include: { model: { include: { brand: true } } },
+    include: carInclude,
   });
 }
 
@@ -43,7 +47,7 @@ export async function getBrands() {
 export async function getSimilarCars(carId: string, modelId: string, limit = 3) {
   return prisma.car.findMany({
     where: { modelId, id: { not: carId }, status: "AVAILABLE" },
-    include: { model: { include: { brand: true } } },
+    include: carInclude,
     take: limit,
   });
 }

@@ -7,7 +7,7 @@ export default async function AdminCarsPage() {
   const t = await getTranslations("adminCars");
 
   const cars = await prisma.car.findMany({
-    include: { model: { include: { brand: true } } },
+    include: { model: { include: { brand: true } }, photos: { include: { photo: true }, orderBy: { sortOrder: "asc" } } },
     orderBy: { createdAt: "desc" },
   });
 

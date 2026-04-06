@@ -13,7 +13,7 @@ export default async function AdminCarsEditPage({ params }: EditCarPageProps) {
 
   const car = await prisma.car.findUnique({
     where: { id },
-    include: { model: { include: { brand: true } } },
+    include: { model: { include: { brand: true } }, photos: { include: { photo: true }, orderBy: { sortOrder: "asc" } } },
   });
 
   if (!car) {

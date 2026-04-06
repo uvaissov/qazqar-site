@@ -79,32 +79,61 @@ model CarModel {
 }
 
 model Car {
-  id            String       @id @default(cuid())
-  modelId       String
-  licensePlate  String       @unique
-  year          Int
-  color         String
-  pricePerDay   Int
-  transmission  Transmission @default(AUTOMATIC)
-  fuelType      FuelType     @default(AI92)
-  seats         Int          @default(5)
-  hasAC         Boolean      @default(true)
-  status        CarStatus    @default(AVAILABLE)
-  images        String[]
-  slug          String       @unique
-  descriptionRu String?
-  descriptionKz String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  inventoryId    Int          @unique
+  modelId        String
+  number         String       @unique
+  techPassport   String?
+  vin            String?
+  year           Int
+  color          String
+  totalDistance   Int          @default(0)
+  transmission   Transmission @default(AUTOMATIC)
+  fuelType       FuelType     @default(AI92)
+  seats          Int          @default(5)
+  hasAC          Boolean      @default(true)
+  status           CarStatus    @default(AVAILABLE)
+  nextBookingAt    DateTime?
+  availableFrom    DateTime?
+  slug             String       @unique
+  descriptionRu  String?
+  descriptionKz  String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   model    CarModel  @relation(fields: [modelId], references: [id])
   bookings Booking[]
+  photos   CarPhoto[]
 
   @@map("cars")
 }
 
+model Photo {
+  id        String     @id @default(cuid())
+  url       String     @unique
+  name      String?
+  createdAt DateTime   @default(now())
+
+  cars CarPhoto[]
+
+  @@map("photos")
+}
+
+model CarPhoto {
+  carId     String
+  photoId   String
+  sortOrder Int      @default(0)
+
+  car   Car   @relation(fields: [carId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@id([carId, photoId])
+  @@map("car_photos")
+}
+
 model Booking {
   id              String        @id @default(cuid())
+  requestId       Int?          @unique
   userId          String?
   carId           String
   startDate       DateTime
@@ -174,4 +203,22 @@ model FaqItem {
   published  Boolean @default(true)
 
   @@map("faq_items")
+}
+
+enum OtpType {
+  REGISTER
+  RESET_PASSWORD
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      OtpType
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, code, type])
+  @@map("otp_codes")
 }

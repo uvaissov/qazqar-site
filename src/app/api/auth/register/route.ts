@@ -1,15 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { signToken } from "@/lib/auth";
+import { verifyOtp } from "@/lib/otp";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { firstName, lastName, email, phone, password } = await request.json();
+    const { firstName, lastName, email, phone, password, otpCode } = await request.json();
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !otpCode) {
       return NextResponse.json(
         { error: "All fields are required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify OTP
+    const otpValid = await verifyOtp(email, otpCode, "REGISTER");
+    if (!otpValid) {
+      return NextResponse.json(
+        { error: "INVALID_OTP" },
         { status: 400 }
       );
     }

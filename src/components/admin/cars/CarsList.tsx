@@ -6,13 +6,15 @@ import { Link } from "@/i18n/routing";
 
 interface CarWithModel {
   id: string;
-  licensePlate: string;
+  number: string;
   year: number;
   color: string;
-  pricePerDay: number;
   transmission: string;
   status: string;
-  images: string[];
+  availableFrom: string | null;
+  nextBookingAt: string | null;
+  totalDistance: number;
+  photos: { photo: { url: string } }[];
   model: {
     name: string;
     brand: {
@@ -45,11 +47,20 @@ export default function CarsList({ cars }: CarsListProps) {
     }
   };
 
-  const statusBadge = (status: string) => {
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const statusBadge = (car: CarWithModel) => {
     const styles: Record<string, string> = {
       AVAILABLE: "bg-green-100 text-green-700",
-      RENTED: "bg-yellow-100 text-yellow-700",
-      MAINTENANCE: "bg-red-100 text-red-700",
+      RENTED: "bg-red-100 text-red-700",
+      MAINTENANCE: "bg-gray-100 text-gray-700",
     };
 
     const labels: Record<string, string> = {
@@ -59,11 +70,23 @@ export default function CarsList({ cars }: CarsListProps) {
     };
 
     return (
-      <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[status] || "bg-gray-100 text-gray-700"}`}
-      >
-        {labels[status] || status}
-      </span>
+      <div className="space-y-1">
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[car.status] || "bg-gray-100 text-gray-700"}`}
+        >
+          {labels[car.status] || car.status}
+        </span>
+        {car.status === "RENTED" && car.availableFrom && (
+          <p className="text-xs text-red-500">
+            {t("until")} {formatDate(car.availableFrom)}
+          </p>
+        )}
+        {car.nextBookingAt && (
+          <p className="text-xs text-amber-600">
+            {t("nextBooking")}: {formatDate(car.nextBookingAt)}
+          </p>
+        )}
+      </div>
     );
   };
 
@@ -104,10 +127,10 @@ export default function CarsList({ cars }: CarsListProps) {
                 {t("year")}
               </th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">
-                {t("price")}
+                {t("status")}
               </th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">
-                {t("status")}
+                {t("mileage")}
               </th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">
                 {t("transmission")}
@@ -121,10 +144,10 @@ export default function CarsList({ cars }: CarsListProps) {
             {cars.map((car) => (
               <tr key={car.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3">
-                  {car.images.length > 0 ? (
+                  {car.photos.length > 0 ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={car.images[0]}
+                      src={car.photos[0].photo.url}
                       alt={`${car.model.brand.name} ${car.model.name}`}
                       className="w-16 h-10 object-cover rounded"
                     />
@@ -151,14 +174,14 @@ export default function CarsList({ cars }: CarsListProps) {
                     {car.model.brand.name} {car.model.name}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {car.licensePlate}
+                    {car.number}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{car.year}</td>
+                <td className="px-4 py-3">{statusBadge(car)}</td>
                 <td className="px-4 py-3 text-gray-600">
-                  {car.pricePerDay.toLocaleString()} &#8376;
+                  {car.totalDistance.toLocaleString()} km
                 </td>
-                <td className="px-4 py-3">{statusBadge(car.status)}</td>
                 <td className="px-4 py-3 text-gray-600">
                   {car.transmission === "AUTOMATIC" ? "AKPP" : "MKPP"}
                 </td>

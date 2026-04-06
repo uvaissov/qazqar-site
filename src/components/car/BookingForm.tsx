@@ -13,13 +13,11 @@ type Discount = {
 
 type BookingFormProps = {
   carId: string;
-  pricePerDay: number;
   discounts: Discount[];
 };
 
 export default function BookingForm({
   carId,
-  pricePerDay,
   discounts,
 }: BookingFormProps) {
   const t = useTranslations("booking");
@@ -61,7 +59,8 @@ export default function BookingForm({
 
     if (days <= 0) return null;
 
-    const basePrice = days * pricePerDay;
+    // TODO: цена будет приходить из тарифов API
+    const basePrice = 0;
 
     const applicable = discounts.find(
       (d) => days >= d.minDays && days <= d.maxDays
@@ -70,7 +69,7 @@ export default function BookingForm({
     const totalPrice = Math.round(basePrice * (1 - discountPercent / 100));
 
     return { days, basePrice, discountPercent, totalPrice };
-  }, [startDate, endDate, pricePerDay, discounts]);
+  }, [startDate, endDate, discounts]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -242,7 +241,7 @@ export default function BookingForm({
             
             <div className="flex justify-between items-center text-gray-400 text-sm mb-3 font-medium">
               <span>
-                {calculation.days} {t("days")} x {pricePerDay.toLocaleString()} ₸
+                {calculation.days} {t("days")}
               </span>
               <span>
                 {calculation.basePrice.toLocaleString()} ₸

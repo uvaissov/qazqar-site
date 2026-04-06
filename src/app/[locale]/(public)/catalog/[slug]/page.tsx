@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { getCarBySlug, getSimilarCars } from "@/lib/data/cars";
+import { getCarBySlug, getSimilarCars, getCarImages } from "@/lib/data/cars";
 import { getDiscounts } from "@/lib/data/content";
 import JsonLd from "@/components/seo/JsonLd";
 import CarGallery from "@/components/car/CarGallery";
@@ -26,8 +26,8 @@ export async function generateMetadata({
       : `${brandModel} ${car.year} — Аренда в Астане | Qazqar`;
   const description =
     locale === "kz"
-      ? `${brandModel} жалға алу, тәулігіне ${car.pricePerDay} ₸`
-      : `Аренда ${brandModel} от ${car.pricePerDay} ₸/сутки`;
+      ? `${brandModel} жалға алу | Qazqar`
+      : `Аренда ${brandModel} в Астане | Qazqar`;
   return {
     title,
     description,
@@ -35,7 +35,7 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      images: car.images.length > 0 ? [{ url: car.images[0] }] : [],
+      images: car.photos.length > 0 ? [{ url: car.photos[0].photo.url }] : [],
     },
     alternates: {
       languages: {
@@ -74,10 +74,9 @@ export default async function CarDetailPage({
           description:
             car.descriptionRu ||
             `Аренда ${car.model.brand.name} ${car.model.name} в Астане`,
-          image: car.images[0] || undefined,
+          image: car.photos[0]?.photo.url || undefined,
           offers: {
             "@type": "Offer",
-            price: car.pricePerDay,
             priceCurrency: "KZT",
             availability: "https://schema.org/InStock",
           },
@@ -105,7 +104,7 @@ export default async function CarDetailPage({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left column: Gallery + Specs (Bigger portion) */}
             <div className="lg:col-span-8 space-y-8">
-              <CarGallery images={car.images} title={title} />
+              <CarGallery images={getCarImages(car)} title={title} />
               <CarSpecs car={car} />
             </div>
 
@@ -114,7 +113,6 @@ export default async function CarDetailPage({
               <div className="sticky top-24">
                 <BookingForm
                   carId={car.id}
-                  pricePerDay={car.pricePerDay}
                   discounts={discounts}
                 />
               </div>

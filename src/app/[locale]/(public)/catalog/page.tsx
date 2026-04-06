@@ -17,8 +17,6 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CatalogPage(props: {
   searchParams: Promise<{
     brand?: string;
-    minPrice?: string;
-    maxPrice?: string;
     transmission?: string;
   }>;
 }) {
@@ -27,8 +25,6 @@ export default async function CatalogPage(props: {
 
   const filters = {
     brandSlug: searchParams.brand || undefined,
-    minPrice: searchParams.minPrice ? Number(searchParams.minPrice) : undefined,
-    maxPrice: searchParams.maxPrice ? Number(searchParams.maxPrice) : undefined,
     transmission: searchParams.transmission || undefined,
   };
 

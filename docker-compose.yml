@@ -49,6 +49,18 @@ services:
       exit 0;
       "
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: qazqar-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   minio_data:

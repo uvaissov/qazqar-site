@@ -1,6 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { deleteFile } from "@/lib/minio";
 import { NextResponse } from "next/server";
 
 export async function GET(
@@ -17,7 +16,7 @@ export async function GET(
     const { id } = await params;
     const car = await prisma.car.findUnique({
       where: { id },
-      include: { model: { include: { brand: true } } },
+      include: { model: { include: { brand: true } }, photos: { include: { photo: true }, orderBy: { sortOrder: "asc" } } },
     });
 
     if (!car) {
@@ -49,22 +48,24 @@ export async function PUT(
     const body = await request.json();
     const {
       modelId,
-      licensePlate,
+      inventoryId,
+      number,
+      techPassport,
+      vin,
       year,
       color,
-      pricePerDay,
+      totalDistance,
       transmission,
       fuelType,
       seats,
       hasAC,
       status,
-      images,
       slug,
       descriptionRu,
       descriptionKz,
     } = body;
 
-    if (!modelId || !licensePlate || !year || !color || !pricePerDay || !slug) {
+    if (!modelId || !number || !year || !color || !slug) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -73,7 +74,7 @@ export async function PUT(
 
     const existing = await prisma.car.findFirst({
       where: {
-        OR: [{ licensePlate }, { slug }],
+        OR: [{ number }, { slug }],
         NOT: { id },
       },
     });
@@ -82,8 +83,8 @@ export async function PUT(
       return NextResponse.json(
         {
           error:
-            existing.licensePlate === licensePlate
-              ? "License plate already exists"
+            existing.number === number
+              ? "Car number already exists"
               : "Slug already exists",
         },
         { status: 400 }
@@ -94,21 +95,23 @@ export async function PUT(
       where: { id },
       data: {
         modelId,
-        licensePlate,
+        inventoryId: Number(inventoryId) || 0,
+        number,
+        techPassport: techPassport || null,
+        vin: vin || null,
         year: Number(year),
         color,
-        pricePerDay: Number(pricePerDay),
+        totalDistance: Number(totalDistance) || 0,
         transmission: transmission || "AUTOMATIC",
         fuelType: fuelType || "AI92",
         seats: Number(seats) || 5,
         hasAC: hasAC ?? true,
         status: status || "AVAILABLE",
-        images: images || [],
         slug,
         descriptionRu: descriptionRu || null,
         descriptionKz: descriptionKz || null,
       },
-      include: { model: { include: { brand: true } } },
+      include: { model: { include: { brand: true } }, photos: { include: { photo: true }, orderBy: { sortOrder: "asc" } } },
     });
 
     return NextResponse.json(car);
@@ -139,23 +142,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Car not found" }, { status: 404 });
     }
 
-    // Delete associated images from MinIO
-    for (const imageUrl of car.images) {
-      try {
-        // Extract fileName from URL: http://host/bucket/cars/filename.ext -> cars/filename.ext
-        const urlParts = imageUrl.split("/");
-        const bucketIndex = urlParts.findIndex(
-          (part) => part === "qazqar-images"
-        );
-        if (bucketIndex !== -1) {
-          const fileName = urlParts.slice(bucketIndex + 1).join("/");
-          await deleteFile(fileName);
-        }
-      } catch (e) {
-        console.error("Failed to delete image:", imageUrl, e);
-      }
-    }
-
+    // CarPhoto records cascade-deleted via onDelete: Cascade
     await prisma.car.delete({ where: { id } });
 
     return NextResponse.json({ success: true });

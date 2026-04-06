@@ -1,19 +1,21 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import type { Transmission } from "@/generated/prisma/enums";
-import { Users, Gauge, Wind, ChevronRight } from "lucide-react";
+import type { Transmission, CarStatus } from "@/generated/prisma/enums";
+import { Users, Gauge, Wind, ChevronRight, Clock, CalendarClock } from "lucide-react";
 
 type CarWithModel = {
   id: string;
   slug: string;
   year: number;
   color: string;
-  pricePerDay: number;
   transmission: Transmission;
+  status: CarStatus;
   seats: number;
   hasAC: boolean;
-  images: string[];
+  availableFrom: string | Date | null;
+  nextBookingAt: string | Date | null;
+  photos: { photo: { url: string } }[];
   model: {
     name: string;
     brand: {
@@ -22,40 +24,47 @@ type CarWithModel = {
   };
 };
 
+function formatShortDate(date: string | Date): string {
+  const d = new Date(date);
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
 export default async function CarCard({ car }: { car: CarWithModel }) {
   const t = await getTranslations("catalog");
-  const tCommon = await getTranslations("common");
 
   const title = `${car.model.brand.name} ${car.model.name}`;
+  const images = car.photos.map((p) => p.photo.url);
+  const isRented = car.status === "RENTED";
 
   return (
     <div className="group relative bg-white rounded-[2rem] border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-100/50 hover:-translate-y-1">
       {/* Car image */}
-      <div className="relative aspect-[16/10] bg-gray-50 overflow-hidden">
-        {car.images.length > 0 ? (
-          <Image
-            src={car.images[0]}
-            alt={title}
-            fill
-            className="object-cover group-hover:scale-110 transition-transform duration-700"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-200">
-             <Gauge size={64} strokeWidth={1} />
+      <div className="p-3 pb-0">
+        <div className="relative aspect-[16/10] bg-gray-50 rounded-2xl overflow-hidden">
+          {images.length > 0 ? (
+            <Image
+              src={images[0]}
+              alt={title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-200">
+               <Gauge size={64} strokeWidth={1} />
+            </div>
+          )}
+
+          {/* Year Badge */}
+          <div className="absolute top-3 left-3 glass px-3 py-1 rounded-full text-xs font-bold text-gray-700">
+            {car.year}
           </div>
-        )}
-        
-        {/* Year Badge */}
-        <div className="absolute top-4 left-4 glass px-3 py-1 rounded-full text-xs font-bold text-gray-700">
-          {car.year}
-        </div>
-        
-        {/* Price Overlay */}
-        <div className="absolute bottom-4 right-4 glass px-4 py-2 rounded-2xl">
-           <span className="text-lg font-black text-cyan-600">
-             {car.pricePerDay.toLocaleString()} {tCommon("currency")}
-           </span>
-           <span className="text-[10px] uppercase tracking-tighter text-gray-400 block -mt-1">{t("perDay")}</span>
+
+          {/* Status Badge */}
+          {isRented && (
+            <div className="absolute top-3 right-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+              {t("rented")}
+            </div>
+          )}
         </div>
       </div>
 
@@ -85,6 +94,20 @@ export default async function CarCard({ car }: { car: CarWithModel }) {
               <span className="text-xs font-bold text-gray-600">{car.hasAC ? "A/C" : "—"}</span>
            </div>
         </div>
+
+        {/* Availability info */}
+        {isRented && car.availableFrom && (
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold">
+            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+            {t("availableFrom")} {formatShortDate(car.availableFrom)}
+          </div>
+        )}
+        {!isRented && car.nextBookingAt && (
+          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-50 text-amber-600 rounded-xl text-xs font-bold">
+            <CalendarClock className="w-3.5 h-3.5 flex-shrink-0" />
+            {t("bookedFrom")} {formatShortDate(car.nextBookingAt)}
+          </div>
+        )}
 
         {/* CTA */}
         <Link

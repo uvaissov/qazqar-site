@@ -19,8 +19,6 @@ export default function CatalogFilters({ brands }: { brands: Brand[] }) {
   const t = useTranslations("catalogPage");
 
   const currentBrand = searchParams.get("brand") || "";
-  const currentMinPrice = searchParams.get("minPrice") || "";
-  const currentMaxPrice = searchParams.get("maxPrice") || "";
   const currentTransmission = searchParams.get("transmission") || "";
 
   function updateParams(updates: Record<string, string>) {
@@ -35,15 +33,15 @@ export default function CatalogFilters({ brands }: { brands: Brand[] }) {
     }
 
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
   function resetFilters() {
-    router.push(pathname);
+    router.push(pathname, { scroll: false });
   }
 
   const hasActiveFilters =
-    currentBrand || currentMinPrice || currentMaxPrice || currentTransmission;
+    currentBrand || currentTransmission;
 
   return (
     <div className="glass rounded-[2rem] p-6 md:p-8 transition-all duration-500 shadow-xl shadow-cyan-100/20">
@@ -77,30 +75,6 @@ export default function CatalogFilters({ brands }: { brands: Brand[] }) {
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none group-hover:text-cyan-600 transition-colors" />
           </div>
-        </div>
-
-        {/* Price Range - Combined look */}
-        <div className="lg:col-span-1 space-y-2">
-           <label className="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">
-             {t("priceFrom")} — {t("priceTo")}
-           </label>
-           <div className="flex items-center gap-2 bg-white rounded-2xl border-2 border-gray-100 px-2 py-1 group hover:border-gray-200 focus-within:!border-cyan-500 transition-all">
-              <input
-                type="number"
-                value={currentMinPrice}
-                placeholder={t("pricePlaceholderMin")}
-                onChange={(e) => updateParams({ minPrice: e.target.value })}
-                className="w-full bg-transparent border-none px-3 py-3 text-sm font-bold text-gray-900 focus:ring-0 focus:outline-none placeholder:text-gray-300"
-              />
-              <div className="h-6 w-px bg-gray-100" />
-              <input
-                type="number"
-                value={currentMaxPrice}
-                placeholder={t("pricePlaceholderMax")}
-                onChange={(e) => updateParams({ maxPrice: e.target.value })}
-                className="w-full bg-transparent border-none px-3 py-3 text-sm font-bold text-gray-900 focus:ring-0 focus:outline-none placeholder:text-gray-300 text-right"
-              />
-           </div>
         </div>
 
         {/* Transmission toggle */}

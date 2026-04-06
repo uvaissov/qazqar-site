@@ -9,11 +9,10 @@ type CarWithModel = {
   slug: string;
   year: number;
   color: string;
-  pricePerDay: number;
   transmission: Transmission;
   seats: number;
   hasAC: boolean;
-  images: string[];
+  photos: { photo: { url: string } }[];
   model: {
     name: string;
     brand: {

@@ -20,16 +20,19 @@ interface CarModel {
 interface CarData {
   id: string;
   modelId: string;
-  licensePlate: string;
+  inventoryId: number;
+  number: string;
+  techPassport: string | null;
+  vin: string | null;
   year: number;
   color: string;
-  pricePerDay: number;
+  totalDistance: number;
   transmission: string;
   fuelType: string;
   seats: number;
   hasAC: boolean;
   status: string;
-  images: string[];
+  photos: { photo: { url: string } }[];
   slug: string;
   descriptionRu: string | null;
   descriptionKz: string | null;
@@ -67,12 +70,13 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
   const t = useTranslations("adminCars");
 
   const [modelId, setModelId] = useState(car?.modelId || "");
-  const [licensePlate, setLicensePlate] = useState(car?.licensePlate || "");
+  const [inventoryId, setInventoryId] = useState(car?.inventoryId?.toString() || "0");
+  const [number, setNumber] = useState(car?.number || "");
+  const [techPassport, setTechPassport] = useState(car?.techPassport || "");
+  const [vin, setVin] = useState(car?.vin || "");
   const [year, setYear] = useState(car?.year?.toString() || "");
   const [color, setColor] = useState(car?.color || "");
-  const [pricePerDay, setPricePerDay] = useState(
-    car?.pricePerDay?.toString() || ""
-  );
+  const [totalDistance, setTotalDistance] = useState(car?.totalDistance?.toString() || "0");
   const [transmission, setTransmission] = useState(
     car?.transmission || "AUTOMATIC"
   );
@@ -80,7 +84,7 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
   const [seats, setSeats] = useState(car?.seats?.toString() || "5");
   const [hasAC, setHasAC] = useState(car?.hasAC ?? true);
   const [status, setStatus] = useState(car?.status || "AVAILABLE");
-  const [images, setImages] = useState<string[]>(car?.images || []);
+  const [images, setImages] = useState<string[]>(car?.photos?.map(p => p.photo.url) || []);
   const [slug, setSlug] = useState(car?.slug || "");
   const [descriptionRu, setDescriptionRu] = useState(
     car?.descriptionRu || ""
@@ -124,10 +128,13 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
 
     const body = {
       modelId,
-      licensePlate,
+      inventoryId: Number(inventoryId),
+      number,
+      techPassport: techPassport || null,
+      vin: vin || null,
       year: Number(year),
       color,
-      pricePerDay: Number(pricePerDay),
+      totalDistance: Number(totalDistance),
       transmission,
       fuelType,
       seats: Number(seats),
@@ -206,17 +213,17 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
             </select>
           </div>
 
-          {/* License plate */}
+          {/* Car number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("licensePlate")} *
+              {t("number")} *
             </label>
             <input
               type="text"
-              value={licensePlate}
-              onChange={(e) => setLicensePlate(e.target.value)}
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
               required
-              placeholder="123 ABC 01"
+              placeholder="123ABC01"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
             />
           </div>
@@ -248,22 +255,6 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               value={color}
               onChange={(e) => setColor(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-            />
-          </div>
-
-          {/* Price per day */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t("price")} (&#8376;) *
-            </label>
-            <input
-              type="number"
-              value={pricePerDay}
-              onChange={(e) => setPricePerDay(e.target.value)}
-              required
-              min={0}
-              placeholder="15000"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
             />
           </div>

@@ -82,6 +82,12 @@ export default function LoginForm() {
             />
           </div>
 
+          <div className="text-right">
+            <Link href="/forgot-password" className="text-sm text-cyan-500 hover:underline">
+              {t("forgotPassword")}
+            </Link>
+          </div>
+
           {error && (
             <p className="text-center text-sm text-red-600">{error}</p>
           )}

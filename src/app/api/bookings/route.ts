@@ -40,9 +40,8 @@ export async function POST(request: Request) {
     });
 
     const discountPercent = discount?.percent ?? 0;
-    const totalPrice = Math.round(
-      days * car.pricePerDay * (1 - discountPercent / 100)
-    );
+    // TODO: цена будет приходить из тарифов API
+    const totalPrice = 0;
 
     // Create booking
     const booking = await prisma.booking.create({

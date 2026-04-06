@@ -20,7 +20,6 @@ interface BookingWithCar {
   car: {
     id: string;
     year: number;
-    pricePerDay: number;
     model: {
       name: string;
       brand: {
