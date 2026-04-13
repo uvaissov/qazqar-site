@@ -111,7 +111,7 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 ## Команды
 
 ```bash
-npm run dev      # Запуск dev-сервера (порт 3002, Turbopack)
+npm run dev      # Запуск dev-сервера (Turbopack)
 npm run build    # Сборка
 npm run lint     # Линтинг
 npm run tunnel   # LocalTunnel (qazqar-demo.loca.lt)

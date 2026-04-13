@@ -18,6 +18,10 @@ export default async function CatalogPage(props: {
   searchParams: Promise<{
     brand?: string;
     transmission?: string;
+    priceMin?: string;
+    priceMax?: string;
+    dateFrom?: string;
+    dateTo?: string;
   }>;
 }) {
   const searchParams = await props.searchParams;
@@ -26,6 +30,10 @@ export default async function CatalogPage(props: {
   const filters = {
     brandSlug: searchParams.brand || undefined,
     transmission: searchParams.transmission || undefined,
+    priceMin: searchParams.priceMin ? parseInt(searchParams.priceMin, 10) : undefined,
+    priceMax: searchParams.priceMax ? parseInt(searchParams.priceMax, 10) : undefined,
+    dateFrom: searchParams.dateFrom || undefined,
+    dateTo: searchParams.dateTo || undefined,
   };
 
   const [cars, brands] = await Promise.all([getCars(filters), getBrands()]);
@@ -64,7 +72,7 @@ export default async function CatalogPage(props: {
 
       {/* Car grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <CatalogGrid cars={cars} />
+        <CatalogGrid cars={cars} dateFrom={filters.dateFrom} dateTo={filters.dateTo} />
       </section>
     </main>
   );

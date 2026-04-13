@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     const { email, type } = await request.json();
 
-    if (!email || !type || !["REGISTER", "RESET_PASSWORD"].includes(type)) {
+    if (!email || !type || !["REGISTER", "RESET_PASSWORD", "LOGIN"].includes(type)) {
       return NextResponse.json(
         { error: "Email and valid type required" },
         { status: 400 }
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (type === "RESET_PASSWORD" && !existingUser) {
+    if ((type === "RESET_PASSWORD" || type === "LOGIN") && !existingUser) {
       return NextResponse.json(
         { error: "USER_NOT_FOUND" },
         { status: 404 }

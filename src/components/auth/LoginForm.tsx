@@ -31,6 +31,7 @@ export default function LoginForm() {
       }
 
       const data = await res.json();
+      window.dispatchEvent(new Event("auth-changed"));
       router.push(data.user.role === "ADMIN" ? "/admin" : "/cabinet");
     } catch {
       setError(t("error"));

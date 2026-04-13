@@ -8,6 +8,7 @@ interface CarWithModel {
   id: string;
   number: string;
   year: number;
+  pricePerDay: number;
   color: string;
   transmission: string;
   status: string;
@@ -127,6 +128,9 @@ export default function CarsList({ cars }: CarsListProps) {
                 {t("year")}
               </th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">
+                {t("price")}
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">
                 {t("status")}
               </th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">
@@ -178,6 +182,7 @@ export default function CarsList({ cars }: CarsListProps) {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{car.year}</td>
+                <td className="px-4 py-3 text-gray-600">{car.pricePerDay.toLocaleString()} ₸</td>
                 <td className="px-4 py-3">{statusBadge(car)}</td>
                 <td className="px-4 py-3 text-gray-600">
                   {car.totalDistance.toLocaleString()} km

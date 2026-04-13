@@ -8,6 +8,7 @@ type CarWithModel = {
   id: string;
   slug: string;
   year: number;
+  pricePerDay: number;
   color: string;
   transmission: Transmission;
   status: CarStatus;
@@ -29,7 +30,7 @@ function formatShortDate(date: string | Date): string {
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
-export default async function CarCard({ car }: { car: CarWithModel }) {
+export default async function CarCard({ car, dateFrom, dateTo }: { car: CarWithModel; dateFrom?: string; dateTo?: string }) {
   const t = await getTranslations("catalog");
 
   const title = `${car.model.brand.name} ${car.model.name}`;
@@ -37,7 +38,7 @@ export default async function CarCard({ car }: { car: CarWithModel }) {
   const isRented = car.status === "RENTED";
 
   return (
-    <div className="group relative bg-white rounded-[2rem] border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-100/50 hover:-translate-y-1">
+    <div className="group relative flex flex-col bg-white rounded-[2rem] border border-gray-100 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-cyan-100/50 hover:-translate-y-1 h-full">
       {/* Car image */}
       <div className="p-3 pb-0">
         <div className="relative aspect-[16/10] bg-gray-50 rounded-2xl overflow-hidden">
@@ -65,11 +66,19 @@ export default async function CarCard({ car }: { car: CarWithModel }) {
               {t("rented")}
             </div>
           )}
+
+          {/* Price Badge */}
+          <div className="absolute bottom-4 right-4 glass px-4 py-2 rounded-2xl">
+            <span className="text-lg font-black text-cyan-600">
+              {car.pricePerDay.toLocaleString()} ₸
+            </span>
+            <span className="text-[10px] uppercase tracking-tighter text-gray-400 block -mt-1">/ сутки</span>
+          </div>
         </div>
       </div>
 
       {/* Card content */}
-      <div className="p-6">
+      <div className="flex flex-col flex-1 p-6">
         <div className="flex justify-between items-start mb-4">
            <div>
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-cyan-600 transition-colors">
@@ -96,10 +105,10 @@ export default async function CarCard({ car }: { car: CarWithModel }) {
         </div>
 
         {/* Availability info */}
-        {isRented && car.availableFrom && (
+        {isRented && (
           <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold">
             <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-            {t("availableFrom")} {formatShortDate(car.availableFrom)}
+            {car.availableFrom ? `${t("availableFrom")} ${formatShortDate(car.availableFrom)}` : t("rentedNoDate")}
           </div>
         )}
         {!isRented && car.nextBookingAt && (
@@ -111,8 +120,8 @@ export default async function CarCard({ car }: { car: CarWithModel }) {
 
         {/* CTA */}
         <Link
-          href={`/catalog/${car.slug}`}
-          className="group/btn flex items-center justify-center w-full py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-cyan-600 transition-all duration-300 active:scale-95 overflow-hidden relative"
+          href={dateFrom && dateTo ? `/catalog/${car.slug}?dateFrom=${dateFrom}&dateTo=${dateTo}` : `/catalog/${car.slug}`}
+          className="group/btn mt-auto flex items-center justify-center w-full py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-cyan-600 transition-all duration-300 active:scale-95 overflow-hidden relative"
         >
           <span className="relative z-10">{t("rent")}</span>
           <ChevronRight className="w-5 h-5 ml-2 relative z-10 group-hover/btn:translate-x-1 transition-transform" />

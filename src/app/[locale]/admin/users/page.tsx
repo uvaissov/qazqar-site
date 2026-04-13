@@ -15,6 +15,8 @@ export default async function AdminUsersPage() {
       phone: true,
       firstName: true,
       lastName: true,
+      iin: true,
+      clientId: true,
       role: true,
       createdAt: true,
       _count: { select: { bookings: true } },

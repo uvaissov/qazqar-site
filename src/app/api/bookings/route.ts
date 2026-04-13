@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/prisma";
+import { getSession, signToken } from "@/lib/auth";
+import { verifyOtp } from "@/lib/otp";
+import { yumeApi } from "@/lib/yume/api";
+import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { carId, customerName, customerPhone, startDate, endDate, comment, userId } =
-      body;
+    const { carId, customerName, customerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment } = body;
 
-    // Validate required fields
     if (!carId || !customerName || !customerPhone || !startDate || !endDate) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -17,16 +19,19 @@ export async function POST(request: Request) {
 
     // Get car and check availability
     const car = await prisma.car.findUnique({ where: { id: carId } });
-    if (!car || car.status !== "AVAILABLE") {
+    if (!car) {
       return NextResponse.json(
-        { error: "Car not available" },
+        { error: "Car not found" },
         { status: 400 }
       );
     }
 
-    // Calculate days and discount
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Dates come as "YYYY-MM-DD HH:MM" from form
+    // Parse with Astana timezone to avoid shifts
+    const startISO = startDate.replace(" ", "T") + ":00+05:00";
+    const endISO = endDate.replace(" ", "T") + ":00+05:00";
+    const start = new Date(startISO);
+    const end = new Date(endISO);
     const days = Math.ceil(
       (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -38,12 +43,96 @@ export async function POST(request: Request) {
     const discount = await prisma.discount.findFirst({
       where: { active: true, minDays: { lte: days }, maxDays: { gte: days } },
     });
-
     const discountPercent = discount?.percent ?? 0;
-    // TODO: цена будет приходить из тарифов API
-    const totalPrice = 0;
 
-    // Create booking
+    // Determine user: existing session or quick registration
+    let userId: string | undefined;
+    let newUser = false;
+    const session = await getSession();
+
+    if (session) {
+      userId = session.userId;
+    } else if (customerEmail && otpCode) {
+      // Verify OTP before creating user
+      const otpValid = await verifyOtp(customerEmail, otpCode, "REGISTER")
+        || await verifyOtp(customerEmail, otpCode, "RESET_PASSWORD");
+      if (!otpValid) {
+        return NextResponse.json({ error: "INVALID_OTP" }, { status: 400 });
+      }
+
+      // Find existing user by email or phone, or create new
+      let user = await prisma.user.findUnique({ where: { email: customerEmail } });
+
+      if (!user && customerPhone) {
+        user = await prisma.user.findUnique({ where: { phone: customerPhone } });
+      }
+
+      if (!user) {
+        const tempPassword = await hash(Math.random().toString(36), 10);
+        const [firstName, ...lastParts] = customerName.split(" ");
+
+        // Check if phone already taken
+        const phoneExists = customerPhone
+          ? await prisma.user.findUnique({ where: { phone: customerPhone } })
+          : null;
+
+        user = await prisma.user.create({
+          data: {
+            email: customerEmail,
+            phone: phoneExists ? null : (customerPhone || null),
+            iin: customerIin || null,
+            isResident: isResident !== false,
+            firstName: firstName || customerName,
+            lastName: lastParts.join(" ") || "",
+            passwordHash: tempPassword,
+            role: "CLIENT",
+          },
+        });
+        newUser = true;
+      }
+
+      userId = user.id;
+    }
+
+    // Send request to Yume CRM first — check for date conflicts
+    let requestId: number | undefined;
+    const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
+
+    if (user?.clientId && car.inventoryId) {
+      // startDate/endDate already in "YYYY-MM-DD HH:MM" format from form
+      const crmStart = startDate;
+      const crmEnd = endDate;
+
+      try {
+        const yumeRequest = await yumeApi.createRequest({
+          client: user.clientId,
+          rent_start: crmStart,
+          rent_end: crmEnd,
+        });
+
+        await yumeApi.attachInventory(yumeRequest.id, {
+          inventory: car.inventoryId,
+          tarif_price: car.pricePerDay,
+          start_at: crmStart,
+          end_at: crmEnd,
+        });
+
+        await yumeApi.saveRequest(yumeRequest.id, {
+          rent_start: crmStart,
+          rent_end: crmEnd,
+        });
+
+        requestId = yumeRequest.id;
+      } catch (err) {
+        const message = (err as Error).message || "";
+        if (message.includes("конфликт") || message.includes("schedule")) {
+          return NextResponse.json({ error: "DATE_CONFLICT" }, { status: 409 });
+        }
+        console.error("[Yume] Failed to create request in CRM:", err);
+      }
+    }
+
+    // Create local booking
     const booking = await prisma.booking.create({
       data: {
         carId,
@@ -51,15 +140,41 @@ export async function POST(request: Request) {
         customerPhone,
         startDate: start,
         endDate: end,
-        totalPrice,
+        totalPrice: days * car.pricePerDay * (1 - discountPercent / 100),
         discountPercent,
         status: "PENDING",
         comment: comment || null,
-        userId: userId || undefined,
+        userId,
+        requestId,
       },
     });
 
-    return NextResponse.json({ success: true, bookingId: booking.id });
+    // Set auth cookie if user was created or verified via OTP
+    const response = NextResponse.json({
+      success: true,
+      bookingId: booking.id,
+      newUser,
+    });
+
+    if (userId && !session) {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (user) {
+        const token = await signToken({
+          userId: user.id,
+          email: user.email!,
+          role: user.role,
+        });
+        response.cookies.set("auth-token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 7,
+          path: "/",
+        });
+      }
+    }
+
+    return response;
   } catch (error) {
     console.error("Booking error:", error);
     return NextResponse.json(

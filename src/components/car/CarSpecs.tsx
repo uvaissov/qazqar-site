@@ -5,6 +5,7 @@ import { Users, Gauge, Wind, Fuel, Calendar, Droplet, CarFront, Cog } from "luci
 type CarSpecsProps = {
   car: {
     year: number;
+    pricePerDay: number;
     color: string;
     transmission: Transmission;
     fuelType: FuelType;
@@ -47,7 +48,11 @@ export default async function CarSpecs({ car }: CarSpecsProps) {
            </h1>
            <p className="text-gray-500 font-medium mt-1">{car.year} • {car.color}</p>
         </div>
-        {/* TODO: цена из тарифов */}
+        <div className="text-right">
+          <p className="text-3xl font-black text-cyan-600">
+            {car.pricePerDay.toLocaleString()} ₸ <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">/ сутки</span>
+          </p>
+        </div>
       </div>
 
       {/* Specs Grid */}

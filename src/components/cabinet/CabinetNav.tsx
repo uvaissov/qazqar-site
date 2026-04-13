@@ -9,17 +9,14 @@ export default function CabinetNav() {
   const pathname = usePathname();
 
   const links = [
-    { href: "/cabinet", label: t("profile") },
     { href: "/cabinet/bookings", label: t("bookings") },
+    { href: "/cabinet/profile", label: t("profile") },
   ];
 
   return (
     <nav className="flex gap-6 -mb-px">
       {links.map((link) => {
-        const isActive =
-          link.href === "/cabinet"
-            ? pathname === "/cabinet"
-            : pathname.startsWith(link.href);
+        const isActive = pathname.startsWith(link.href);
         return (
           <Link
             key={link.href}

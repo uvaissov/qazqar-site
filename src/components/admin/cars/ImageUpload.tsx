@@ -1,7 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
+
+type Photo = {
+  id: string;
+  url: string;
+  name: string | null;
+};
 
 interface ImageUploadProps {
   images: string[];
@@ -11,7 +17,29 @@ interface ImageUploadProps {
 export default function ImageUpload({ images, onChange }: ImageUploadProps) {
   const t = useTranslations("adminCars");
   const [uploading, setUploading] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function loadPhotos() {
+    setLoadingPhotos(true);
+    try {
+      const res = await fetch("/api/admin/photos");
+      if (res.ok) {
+        const data = await res.json();
+        setAllPhotos(data);
+      }
+    } finally {
+      setLoadingPhotos(false);
+    }
+  }
+
+  useEffect(() => {
+    if (showGallery && allPhotos.length === 0) {
+      loadPhotos();
+    }
+  }, [showGallery, allPhotos.length]);
 
   const handleUpload = async (files: FileList) => {
     setUploading(true);
@@ -67,6 +95,16 @@ export default function ImageUpload({ images, onChange }: ImageUploadProps) {
     e.preventDefault();
   };
 
+  const handleSelectFromGallery = (url: string) => {
+    if (!images.includes(url)) {
+      onChange([...images, url]);
+    }
+    setShowGallery(false);
+  };
+
+  // Photos not already selected
+  const availablePhotos = allPhotos.filter((p) => !images.includes(p.url));
+
   return (
     <div className="space-y-4">
       {/* Existing images */}
@@ -111,54 +149,46 @@ export default function ImageUpload({ images, onChange }: ImageUploadProps) {
         <p className="text-sm text-gray-400">{t("noImages")}</p>
       )}
 
-      {/* Drop zone */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-cyan-400 transition-colors cursor-pointer"
-        onClick={() => fileInputRef.current?.click()}
-      >
-        {uploading ? (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <svg
-              className="w-5 h-5 animate-spin text-cyan-500"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            Loading...
-          </div>
-        ) : (
+      {/* Actions */}
+      <div className="flex gap-3">
+        {/* Upload new */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          className="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-cyan-400 transition-colors cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          {uploading ? (
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+              <svg className="w-4 h-4 animate-spin text-cyan-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              ...
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <svg className="w-6 h-6 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              <p className="text-xs text-gray-500">{t("uploadImage")}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Select from gallery */}
+        <button
+          type="button"
+          onClick={() => setShowGallery(true)}
+          className="flex-1 border-2 border-dashed border-cyan-300 rounded-lg p-4 text-center hover:border-cyan-400 hover:bg-cyan-50 transition-colors cursor-pointer"
+        >
           <div className="space-y-1">
-            <svg
-              className="w-8 h-8 mx-auto text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
-              />
+            <svg className="w-6 h-6 mx-auto text-cyan-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
             </svg>
-            <p className="text-sm text-gray-500">{t("uploadImage")}</p>
+            <p className="text-xs text-cyan-600 font-medium">{t("selectFromGallery")}</p>
           </div>
-        )}
+        </button>
       </div>
 
       <input
@@ -169,6 +199,49 @@ export default function ImageUpload({ images, onChange }: ImageUploadProps) {
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {/* Gallery modal */}
+      {showGallery && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowGallery(false)}>
+          <div className="mx-4 w-full max-w-2xl max-h-[80vh] rounded-xl bg-white shadow-xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">{t("photoGallery")}</h3>
+              <button onClick={() => setShowGallery(false)} className="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            </div>
+
+            <div className="p-4 overflow-y-auto">
+              {loadingPhotos ? (
+                <p className="text-center text-gray-400 py-8">...</p>
+              ) : availablePhotos.length === 0 ? (
+                <p className="text-center text-gray-400 py-8">{t("noPhotosAvailable")}</p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {availablePhotos.map((photo) => (
+                    <button
+                      key={photo.id}
+                      type="button"
+                      onClick={() => handleSelectFromGallery(photo.url)}
+                      className="rounded-lg overflow-hidden border-2 border-gray-200 hover:border-cyan-500 transition-colors cursor-pointer group"
+                    >
+                      <div className="aspect-video overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={photo.url}
+                          alt={photo.name || "Photo"}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <p className="px-2 py-1.5 text-[10px] text-gray-500 truncate bg-gray-50">
+                        {photo.name || photo.url.split("/").pop()}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

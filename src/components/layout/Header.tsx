@@ -23,11 +23,17 @@ export default function Header() {
   const tCommon = useTranslations("common");
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (res.ok) setIsLoggedIn(true);
-      })
-      .catch(() => {});
+    function checkAuth() {
+      fetch("/api/auth/me")
+        .then((res) => setIsLoggedIn(res.ok))
+        .catch(() => setIsLoggedIn(false));
+    }
+
+    checkAuth();
+
+    // Listen for auth state changes from other components
+    window.addEventListener("auth-changed", checkAuth);
+    return () => window.removeEventListener("auth-changed", checkAuth);
   }, []);
 
   return (

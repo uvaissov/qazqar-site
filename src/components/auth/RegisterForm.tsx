@@ -18,6 +18,8 @@ export default function RegisterForm() {
     firstName: "",
     lastName: "",
     phone: "",
+    iin: "",
+    isResident: true,
     password: "",
     confirmPassword: "",
   });
@@ -93,6 +95,14 @@ export default function RegisterForm() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (form.isResident && !form.iin) {
+      setError(t("iinRequired"));
+      return;
+    }
+    if (form.isResident && form.iin.length !== 12) {
+      setError(t("iinInvalid"));
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setError(t("passwordMismatch"));
       return;
@@ -111,20 +121,26 @@ export default function RegisterForm() {
           lastName: form.lastName,
           email,
           phone: form.phone,
+          iin: form.iin || null,
+          isResident: form.isResident,
           password: form.password,
           otpCode,
         }),
       });
       if (!res.ok) {
         const data = await res.json();
-        if (data.error === "INVALID_OTP") {
-          setError(t("otpExpired"));
-          setStep("email");
-        } else if (data.error === "EMAIL_EXISTS") {
-          setError(t("emailExists"));
-        } else {
-          setError(t("registerError"));
-        }
+        const errorMap: Record<string, string> = {
+          INVALID_OTP: t("otpExpired"),
+          EMAIL_EXISTS: t("emailExists"),
+          IIN_REQUIRED: t("iinRequired"),
+          IIN_FORMAT: t("iinInvalid"),
+          IIN_INVALID: t("iinInvalid"),
+          IIN_CHECKSUM: t("iinChecksum"),
+          IIN_EXISTS: t("iinExists"),
+          IIN_NOT_FOUND_CRM: t("iinNotFoundCrm"),
+        };
+        setError(errorMap[data.error] || t("registerError"));
+        if (data.error === "INVALID_OTP") setStep("email");
         return;
       }
       router.push("/cabinet");
@@ -258,6 +274,41 @@ export default function RegisterForm() {
               </label>
               <input id="phone" type="tel" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} className={inputClass} placeholder="+7 7XX XXX XX XX" />
             </div>
+
+            {/* Resident toggle */}
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <input
+                id="isResident"
+                type="checkbox"
+                checked={form.isResident}
+                onChange={(e) => setForm((p) => ({ ...p, isResident: e.target.checked, iin: e.target.checked ? p.iin : "" }))}
+                className="w-4 h-4 rounded border-gray-300 text-cyan-500 focus:ring-cyan-500"
+              />
+              <label htmlFor="isResident" className="text-sm font-medium text-gray-700">
+                {t("isResident")}
+              </label>
+            </div>
+
+            {/* IIN */}
+            <div>
+              <label htmlFor="iin" className="mb-1 block text-sm font-medium text-gray-700">
+                {t("iin")} {form.isResident && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                id="iin"
+                type="text"
+                value={form.iin}
+                onChange={(e) => setForm((p) => ({ ...p, iin: e.target.value.replace(/\D/g, "").slice(0, 12) }))}
+                required={form.isResident}
+                maxLength={12}
+                className={inputClass}
+                placeholder="000000000000"
+              />
+              {!form.isResident && (
+                <p className="mt-1 text-xs text-gray-400">{t("iinOptional")}</p>
+              )}
+            </div>
+
             <div>
               <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
                 {t("password")}

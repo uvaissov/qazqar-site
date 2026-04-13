@@ -16,6 +16,8 @@ export async function GET() {
       phone: true,
       firstName: true,
       lastName: true,
+      iin: true,
+      isResident: true,
       role: true,
     },
   });

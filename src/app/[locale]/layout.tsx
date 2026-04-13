@@ -74,6 +74,7 @@ export default async function LocaleLayout({
         <NextIntlClientProvider messages={messages}>
           <LayoutWrapper>{children}</LayoutWrapper>
         </NextIntlClientProvider>
+        <div id="datepicker-portal" />
       </body>
     </html>
   );

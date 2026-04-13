@@ -1,4 +1,4 @@
-import { verifyOtp } from "@/lib/otp";
+import { checkOtp } from "@/lib/otp";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const valid = await verifyOtp(email, code, type);
+    const valid = await checkOtp(email, code, type);
 
     if (!valid) {
       return NextResponse.json(

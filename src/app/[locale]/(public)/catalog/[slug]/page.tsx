@@ -48,10 +48,12 @@ export async function generateMetadata({
 
 export default async function CarDetailPage({
   params,
+  searchParams: searchParamsPromise,
 }: {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
 }) {
-  const { slug } = await params;
+  const [{ slug }, searchParams] = await Promise.all([params, searchParamsPromise]);
 
   const car = await getCarBySlug(slug);
   if (!car) notFound();
@@ -113,7 +115,10 @@ export default async function CarDetailPage({
               <div className="sticky top-24">
                 <BookingForm
                   carId={car.id}
+                  pricePerDay={car.pricePerDay}
                   discounts={discounts}
+                  initialDateFrom={searchParams.dateFrom}
+                  initialDateTo={searchParams.dateTo}
                 />
               </div>
             </div>

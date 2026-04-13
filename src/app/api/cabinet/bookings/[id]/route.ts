@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { yumeApi } from "@/lib/yume/api";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
@@ -12,7 +13,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { status } = await request.json();
+  const { status, reason } = await request.json();
 
   // Client can only cancel PENDING bookings
   if (status !== "CANCELLED") {
@@ -30,8 +31,23 @@ export async function PATCH(
 
   await prisma.booking.update({
     where: { id },
-    data: { status: "CANCELLED" },
+    data: {
+      status: "CANCELLED",
+      ...(reason && { cancellationReason: reason }),
+    },
   });
+
+  // Cancel in Yume CRM and add reason as comment
+  if (booking.requestId) {
+    try {
+      await yumeApi.cancelRequest(booking.requestId);
+      if (reason) {
+        await yumeApi.addRequestComment(booking.requestId, reason);
+      }
+    } catch (err) {
+      console.error("[Yume] Failed to cancel request:", err);
+    }
+  }
 
   return NextResponse.json({ success: true });
 }

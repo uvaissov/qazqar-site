@@ -8,6 +8,8 @@ type UserData = {
   lastName: string;
   email: string | null;
   phone: string | null;
+  iin: string | null;
+  isResident: boolean;
 };
 
 export default function ProfileForm({ user }: { user: UserData }) {
@@ -140,6 +142,21 @@ export default function ProfileForm({ user }: { user: UserData }) {
             className={inputClass}
             placeholder="+7 7XX XXX XX XX"
           />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            {t("iin")}
+          </label>
+          <input
+            type="text"
+            value={user.iin || ""}
+            disabled
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-500"
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            {user.isResident ? t("resident") : t("nonResident")}
+          </p>
         </div>
       </div>
 

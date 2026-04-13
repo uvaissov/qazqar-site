@@ -45,6 +45,9 @@ model User {
   passwordHash String
   firstName    String
   lastName     String
+  iin          String?   @unique
+  isResident   Boolean   @default(true)
+  clientId     Int?      @unique
   role         UserRole  @default(CLIENT)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -92,6 +95,7 @@ model Car {
   fuelType       FuelType     @default(AI92)
   seats          Int          @default(5)
   hasAC          Boolean      @default(true)
+  pricePerDay    Int          @default(15000)
   status           CarStatus    @default(AVAILABLE)
   nextBookingAt    DateTime?
   availableFrom    DateTime?
@@ -143,8 +147,10 @@ model Booking {
   status          BookingStatus @default(PENDING)
   customerName    String
   customerPhone   String
-  comment         String?
-  createdAt       DateTime      @default(now())
+  comment            String?
+  cancellationReason String?
+  documents          Json?
+  createdAt          DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   user User? @relation(fields: [userId], references: [id])
@@ -208,6 +214,7 @@ model FaqItem {
 enum OtpType {
   REGISTER
   RESET_PASSWORD
+  LOGIN
 }
 
 model OtpCode {

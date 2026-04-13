@@ -68,6 +68,8 @@ function generateSlug(
 export default function CarForm({ mode, car, models }: CarFormProps) {
   const router = useRouter();
   const t = useTranslations("adminCars");
+  const isApiCar = mode === "edit" && (car?.inventoryId ?? 0) > 0;
+  const disabledClass = "w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-500 cursor-not-allowed";
 
   const [modelId, setModelId] = useState(car?.modelId || "");
   const [inventoryId, setInventoryId] = useState(car?.inventoryId?.toString() || "0");
@@ -183,9 +185,16 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
 
       {/* Main info card */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          {t("model")}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800">
+            {t("model")}
+          </h2>
+          {isApiCar && (
+            <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+              {t("syncedFromCrm")}
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Model select */}
           <div>
@@ -196,7 +205,8 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+              disabled={isApiCar}
+              className={isApiCar ? disabledClass : "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"}
             >
               <option value="">--</option>
               {Object.entries(brandGroups).map(
@@ -223,8 +233,9 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               value={number}
               onChange={(e) => setNumber(e.target.value)}
               required
+              disabled={isApiCar}
               placeholder="123ABC01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+              className={isApiCar ? disabledClass : "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"}
             />
           </div>
 
@@ -238,10 +249,11 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               value={year}
               onChange={(e) => setYear(e.target.value)}
               required
+              disabled={isApiCar}
               min={2000}
               max={2030}
               placeholder="2024"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+              className={isApiCar ? disabledClass : "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"}
             />
           </div>
 
@@ -255,7 +267,8 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               value={color}
               onChange={(e) => setColor(e.target.value)}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+              disabled={isApiCar}
+              className={isApiCar ? disabledClass : "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"}
             />
           </div>
 

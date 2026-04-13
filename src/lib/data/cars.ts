@@ -13,6 +13,10 @@ export function getCarImages(car: { photos: { photo: { url: string } }[] }): str
 export async function getCars(filters?: {
   brandSlug?: string;
   transmission?: string;
+  priceMin?: number;
+  priceMax?: number;
+  dateFrom?: string;
+  dateTo?: string;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {};
@@ -21,6 +25,30 @@ export async function getCars(filters?: {
   }
   if (filters?.transmission) {
     where.transmission = filters.transmission;
+  }
+  if (filters?.priceMin || filters?.priceMax) {
+    where.pricePerDay = {};
+    if (filters.priceMin) where.pricePerDay.gte = filters.priceMin;
+    if (filters.priceMax) where.pricePerDay.lte = filters.priceMax;
+  }
+  if (filters?.dateFrom && filters?.dateTo) {
+    const from = new Date(filters.dateFrom);
+    const to = new Date(filters.dateTo);
+    if (from < to) {
+      // Car must be available or will free up by dateFrom
+      where.OR = [
+        { status: "AVAILABLE" },
+        { status: "RENTED", availableFrom: { lte: from } },
+      ];
+      // No overlapping active bookings
+      where.bookings = {
+        none: {
+          status: { not: "CANCELLED" },
+          startDate: { lt: to },
+          endDate: { gt: from },
+        },
+      };
+    }
   }
 
   return prisma.car.findMany({

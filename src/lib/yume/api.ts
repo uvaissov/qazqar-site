@@ -139,6 +139,176 @@ class YumeApi {
 
   // --- Public API methods ---
 
+  // Clients — search field works for IIN, phone, name
+  async searchClients(query: string): Promise<YumeClient[]> {
+    const data = await this.request<YumeListResponse<YumeClient>>(
+      "GET",
+      `/v1/crm/clients/?search=${encodeURIComponent(query)}`
+    );
+    return data.results;
+  }
+
+  async findClientByEmail(email: string): Promise<YumeClient | null> {
+    const data = await this.request<YumeListResponse<YumeClient>>(
+      "GET",
+      `/v1/crm/clients/?email__exact=${encodeURIComponent(email)}`
+    );
+    return data.results[0] || null;
+  }
+
+  async findClientByPhone(phone: string): Promise<YumeClient | null> {
+    const data = await this.request<YumeListResponse<YumeClient>>(
+      "GET",
+      `/v1/crm/clients/?phone__exact=${encodeURIComponent(phone)}`
+    );
+    return data.results[0] || null;
+  }
+
+  async findClientByIin(iin: string): Promise<YumeClient | null> {
+    const data = await this.request<YumeListResponse<YumeClient>>(
+      "GET",
+      `/v1/crm/clients/?iin__exact=${encodeURIComponent(iin)}`
+    );
+    return data.results[0] || null;
+  }
+
+  async createClient(data: {
+    name: string;
+    phone?: string;
+    email?: string;
+    iin?: string;
+  }): Promise<YumeClient> {
+    return this.request<YumeClient>("POST", `/v1/crm/clients/`, data);
+  }
+
+  async getClient(clientId: number): Promise<YumeClientDetail> {
+    return this.request<YumeClientDetail>(
+      "GET",
+      `/v1/crm/clients/${clientId}/`
+    );
+  }
+
+  // Requests (orders) by client
+  async getClientRequests(clientId: number, page = 1, pageSize = 100) {
+    return this.request<YumeListResponse<YumeRequest>>(
+      "GET",
+      `/v1/crm/requests/?client=${clientId}&page=${page}&pageSize=${pageSize}`
+    );
+  }
+
+  async getAllClientRequests(clientId: number): Promise<YumeRequest[]> {
+    const all: YumeRequest[] = [];
+    let page = 1;
+    while (true) {
+      const data = await this.getClientRequests(clientId, page);
+      all.push(...data.results);
+      if (!data.next) break;
+      page++;
+    }
+    return all;
+  }
+
+  // Requests (orders) — create flow
+  async createRequest(data: {
+    client: number;
+    rent_start: string;
+    rent_end: string;
+  }): Promise<YumeRequest> {
+    return this.request<YumeRequest>("POST", `/v1/crm/requests/`, {
+      ...data,
+      autorenewal: false,
+    });
+  }
+
+  async attachInventory(requestId: number, data: {
+    inventory: number;
+    tarif_price: number;
+    start_at: string;
+    end_at: string;
+  }): Promise<unknown> {
+    return this.request<unknown>(
+      "POST",
+      `/v1/crm/requests/${requestId}/inventories/bulk_create/`,
+      {
+        inventories: [{
+          type: 0,
+          inventory: data.inventory,
+          tarif: null,
+          tarif_price: String(data.tarif_price),
+          tarif_duration: 86400,
+          start_at: data.start_at,
+          end_at: data.end_at,
+        }],
+      }
+    );
+  }
+
+  async saveRequest(requestId: number, data?: {
+    rent_start?: string;
+    rent_end?: string;
+  }): Promise<YumeRequest> {
+    return this.request<YumeRequest>(
+      "PATCH",
+      `/v1/crm/requests/${requestId}/`,
+      { autorenewal: false, ...data }
+    );
+  }
+
+  async getRequest(requestId: number): Promise<YumeRequest> {
+    return this.request<YumeRequest>(
+      "GET",
+      `/v1/crm/requests/${requestId}/`
+    );
+  }
+
+  /** Get request or order by ID — always available at /v1/crm/requests/{id}/ */
+  async getRequestOrOrder(id: number): Promise<YumeRequest> {
+    return this.getRequest(id);
+  }
+
+  /** Get comments for a request (includes cancellation reasons) */
+  async getRequestComments(requestId: number): Promise<YumeComment[]> {
+    return this.request<YumeComment[]>(
+      "GET",
+      `/v1/attachments/comments/?content_type=orderrequest&object_id=${requestId}`
+    );
+  }
+
+  /** Cancel a request via action endpoint */
+  async cancelRequest(requestId: number): Promise<void> {
+    await this.request<unknown>(
+      "POST",
+      `/v1/crm/requests/${requestId}/action/`,
+      {
+        action: 3, // cancel
+        status: 3, // cancelled
+      }
+    );
+  }
+
+  /** Add a comment to a request (used for cancellation reasons) */
+  async addRequestComment(requestId: number, body: string): Promise<void> {
+    await this.request<unknown>(
+      "POST",
+      `/v1/attachments/comments/`,
+      {
+        body,
+        content_type: "orderrequest",
+        object_id: requestId,
+      }
+    );
+  }
+
+  // Documents
+  async getRequestDocuments(requestId: number): Promise<YumeDocument[]> {
+    const data = await this.request<YumeListResponse<YumeDocument>>(
+      "GET",
+      `/v2/documents/?content_type=orderrequest&object_id=${requestId}`
+    );
+    return data.results;
+  }
+
+  // Inventories
   async getInventories(page = 1, pageSize = 100) {
     return this.request<YumeListResponse<YumeInventory>>(
       "GET",
@@ -180,6 +350,60 @@ class YumeApi {
 
 // --- Types ---
 
+export type YumeClient = {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  iin: string | null;
+  type: number;
+  agreement_id: string | null;
+  signed: boolean;
+};
+
+export type YumeClientDetail = YumeClient & {
+  orders_count: number;
+  orders_amount: string;
+  orders_paid_amount: string;
+  orders_debt_amount: string;
+  overdue_rentals_amount: string;
+  last_rent_date: string | null;
+  total_time: string;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type YumeRequestInventory = {
+  id: number;
+  inventory: number;
+  tarif_price: string;
+  tarif_duration: string;
+  inventory_name: string;
+  inventory_car_number: string;
+  image: string | null;
+  started: boolean;
+  returned: boolean;
+};
+
+export type YumeRequest = {
+  id: number;
+  client: YumeClient;
+  status: number;
+  status_color: string;
+  rent_start: string;
+  rent_end: string;
+  rent_fact_start: string | null;
+  rent_fact_end: string | null;
+  price: string;
+  price_discount: string;
+  paid_amount: string;
+  payment_status: number;
+  inventories: YumeRequestInventory[];
+  created_at: string;
+  updated_at: string;
+};
+
 export type YumeListResponse<T> = {
   page: number;
   count: number;
@@ -196,6 +420,15 @@ export type YumeInventoryCar = {
   tech_passport: string;
 };
 
+export type YumeInventoryTarif = {
+  id: number;
+  name: string;
+  price: string;
+  published: boolean;
+  time_period: number;
+  weekdays: number[];
+};
+
 export type YumeInventory = {
   id: number;
   car: YumeInventoryCar;
@@ -204,6 +437,7 @@ export type YumeInventory = {
   status: number;
   state: number;
   current_client: unknown | null;
+  tarifs: YumeInventoryTarif[];
   extra: {
     vin?: string;
     made?: string;
@@ -249,6 +483,48 @@ export type YumeScheduleInventory = {
     color?: string;
     total_distance?: number;
   };
+};
+
+export type YumeComment = {
+  id: number;
+  body: string;
+  user: number | null;
+  content_type: string;
+  object_id: number;
+  created_at: string;
+};
+
+export type YumeDocumentSigner = {
+  id: number;
+  name: string;
+  phone: string;
+  email: string;
+  type: string; // "client" or company role
+};
+
+export type YumeDocumentSign = {
+  id: number;
+  uuid: string;
+  method: number;
+  status: number; // 0=draft, 2=signed
+  signer: YumeDocumentSigner | null;
+};
+
+export type YumeDocumentFile = {
+  id: number;
+  file: string;
+  type: number; // 0=original, 1=overlay, 2=esign, 3=sign
+};
+
+export type YumeDocument = {
+  id: number;
+  uuid: string;
+  name: string;
+  template: number | null;
+  signed: boolean;
+  files: YumeDocumentFile[];
+  signs: YumeDocumentSign[];
+  created_at: string;
 };
 
 // Singleton

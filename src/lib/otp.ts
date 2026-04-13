@@ -43,6 +43,27 @@ export async function createOtp(
   return { code };
 }
 
+// Check OTP without consuming it (for intermediate verify step)
+export async function checkOtp(
+  email: string,
+  code: string,
+  type: OtpType
+): Promise<boolean> {
+  const otp = await prisma.otpCode.findFirst({
+    where: {
+      email,
+      code,
+      type,
+      used: false,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return !!otp;
+}
+
+// Verify and consume OTP (for final action: register, reset password)
 export async function verifyOtp(
   email: string,
   code: string,

@@ -8,6 +8,7 @@ type CarWithModel = {
   id: string;
   slug: string;
   year: number;
+  pricePerDay: number;
   color: string;
   transmission: Transmission;
   seats: number;

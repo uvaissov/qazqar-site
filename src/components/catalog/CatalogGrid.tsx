@@ -7,6 +7,7 @@ type CarWithModel = {
   id: string;
   slug: string;
   year: number;
+  pricePerDay: number;
   color: string;
   transmission: Transmission;
   seats: number;
@@ -20,7 +21,7 @@ type CarWithModel = {
   };
 };
 
-export default async function CatalogGrid({ cars }: { cars: CarWithModel[] }) {
+export default async function CatalogGrid({ cars, dateFrom, dateTo }: { cars: CarWithModel[]; dateFrom?: string; dateTo?: string }) {
   const t = await getTranslations("catalogPage");
 
   if (cars.length === 0) {
@@ -44,7 +45,7 @@ export default async function CatalogGrid({ cars }: { cars: CarWithModel[] }) {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {cars.map((car) => (
-          <CarCard key={car.id} car={car} />
+          <CarCard key={car.id} car={car} dateFrom={dateFrom} dateTo={dateTo} />
         ))}
       </div>
     </div>
