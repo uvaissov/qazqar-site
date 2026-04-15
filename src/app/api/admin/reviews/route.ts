@@ -22,3 +22,34 @@ export async function GET() {
     );
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { authorName, rating, textRu, textKz, approved } = await request.json();
+
+    if (!authorName || !rating || !textRu) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const review = await prisma.review.create({
+      data: {
+        authorName,
+        rating: Math.min(5, Math.max(1, Number(rating))),
+        textRu,
+        textKz: textKz || "",
+        approved: approved ?? true,
+      },
+    });
+
+    return NextResponse.json(review);
+  } catch (error) {
+    console.error("Create review error:", error);
+    return NextResponse.json({ error: "Failed to create review" }, { status: 500 });
+  }
+}

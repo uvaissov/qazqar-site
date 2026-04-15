@@ -90,13 +90,13 @@ export default function CatalogFilters({ brands }: { brands: Brand[] }) {
           </label>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <input
               type="date"
               min={today}
               value={currentDateFrom}
               onChange={(e) => updateParams({ dateFrom: e.target.value })}
-              className="appearance-none bg-white rounded-2xl border-2 border-gray-100 px-4 py-3 text-sm font-bold text-gray-900 focus:border-cyan-500 focus:outline-none transition-all hover:border-gray-200"
+              className="min-w-0 flex-1 appearance-none bg-white rounded-2xl border-2 border-gray-100 px-4 py-3 text-sm font-bold text-gray-900 focus:border-cyan-500 focus:outline-none transition-all hover:border-gray-200 sm:flex-none"
             />
             <span className="text-gray-400 text-sm font-bold">—</span>
             <input
@@ -104,7 +104,7 @@ export default function CatalogFilters({ brands }: { brands: Brand[] }) {
               min={currentDateFrom || today}
               value={currentDateTo}
               onChange={(e) => updateParams({ dateTo: e.target.value })}
-              className="appearance-none bg-white rounded-2xl border-2 border-gray-100 px-4 py-3 text-sm font-bold text-gray-900 focus:border-cyan-500 focus:outline-none transition-all hover:border-gray-200"
+              className="min-w-0 flex-1 appearance-none bg-white rounded-2xl border-2 border-gray-100 px-4 py-3 text-sm font-bold text-gray-900 focus:border-cyan-500 focus:outline-none transition-all hover:border-gray-200 sm:flex-none"
             />
           </div>
           <div className="flex gap-2">

@@ -1,0 +1,22 @@
+meta {
+  name: Catalog - List cars
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/catalog
+  body: none
+  auth: none
+}
+
+query {
+  brandId:
+  transmission:
+  fuelType:
+  minSeats:
+  minPrice:
+  maxPrice:
+  dateStart:
+  dateEnd:
+}

@@ -63,6 +63,7 @@ export async function PUT(
       slug,
       descriptionRu,
       descriptionKz,
+      images,
     } = body;
 
     if (!modelId || !number || !year || !color || !slug) {
@@ -111,10 +112,33 @@ export async function PUT(
         descriptionRu: descriptionRu || null,
         descriptionKz: descriptionKz || null,
       },
+    });
+
+    // Sync photos if provided
+    if (Array.isArray(images)) {
+      // Remove old links
+      await prisma.carPhoto.deleteMany({ where: { carId: id } });
+
+      // Upsert Photo records and create links
+      for (let i = 0; i < images.length; i++) {
+        const url = images[i];
+        const photo = await prisma.photo.upsert({
+          where: { url },
+          create: { url, name: url.split("/").pop() ?? null },
+          update: {},
+        });
+        await prisma.carPhoto.create({
+          data: { carId: id, photoId: photo.id, sortOrder: i },
+        });
+      }
+    }
+
+    const updated = await prisma.car.findUnique({
+      where: { id },
       include: { model: { include: { brand: true } }, photos: { include: { photo: true }, orderBy: { sortOrder: "asc" } } },
     });
 
-    return NextResponse.json(car);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error("Update car error:", error);
     return NextResponse.json(

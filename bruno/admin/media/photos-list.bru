@@ -1,0 +1,15 @@
+meta {
+  name: Admin - Photos list
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/photos
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import CarCard from "@/components/ui/CarCard";
-import type { Transmission } from "@/generated/prisma/enums";
+import type { Transmission, CarStatus } from "@/generated/prisma/enums";
 import { SearchX } from "lucide-react";
 
 type CarWithModel = {
@@ -10,8 +10,13 @@ type CarWithModel = {
   pricePerDay: number;
   color: string;
   transmission: Transmission;
+  status: CarStatus;
   seats: number;
   hasAC: boolean;
+  availableFrom: string | Date | null;
+  nextBookingAt: string | Date | null;
+  availableCount?: number;
+  totalCount?: number;
   photos: { photo: { url: string } }[];
   model: {
     name: string;
@@ -45,7 +50,7 @@ export default async function CatalogGrid({ cars, dateFrom, dateTo }: { cars: Ca
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {cars.map((car) => (
-          <CarCard key={car.id} car={car} dateFrom={dateFrom} dateTo={dateTo} />
+          <CarCard key={car.id} car={car} dateFrom={dateFrom} dateTo={dateTo} availableCount={car.availableCount} />
         ))}
       </div>
     </div>

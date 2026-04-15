@@ -319,20 +319,14 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
             />
           </div>
 
-          {/* Status */}
+          {/* Status — read-only, managed by CRM sync */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               {t("status")}
             </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
-            >
-              <option value="AVAILABLE">{t("available")}</option>
-              <option value="RENTED">{t("rented")}</option>
-              <option value="MAINTENANCE">{t("maintenance")}</option>
-            </select>
+            <div className={disabledClass}>
+              {status === "AVAILABLE" ? t("available") : status === "RENTED" ? t("rented") : t("maintenance")}
+            </div>
           </div>
 
           {/* AC */}

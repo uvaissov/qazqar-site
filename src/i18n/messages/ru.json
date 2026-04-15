@@ -24,6 +24,7 @@
     "availableFrom": "Свободно с",
     "bookedFrom": "Бронь с",
     "rentedNoDate": "Занято (срок неизвестен)",
+    "availableCars": "авто",
     "baseRate": "Базовая ставка",
     "perDay": "/ сутки",
     "filter": "Фильтр",
@@ -258,6 +259,7 @@
     "faq": "FAQ",
     "reviews": "Отзывы",
     "discounts": "Скидки",
+    "media": "Медиа",
     "totalCars": "Всего автомобилей",
     "availableCars": "Доступные",
     "pendingBookings": "Ожидающие заявки",
@@ -357,7 +359,12 @@
     "inactive": "Неактивна",
     "slug": "URL (slug)",
     "empty": "Нет данных",
-    "edit": "Редактировать"
+    "edit": "Редактировать",
+    "addReview": "Добавить отзыв",
+    "editReview": "Редактировать отзыв",
+    "reviewName": "Имя автора",
+    "reviewTextRu": "Текст отзыва (RU)",
+    "reviewTextKz": "Текст отзыва (KZ)"
   },
   "adminBrands": {
     "title": "Марки и модели",

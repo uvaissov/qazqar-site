@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { getCars, getBrands } from "@/lib/data/cars";
+import { getGroupedCars, getBrands } from "@/lib/data/cars";
 import CatalogFilters from "@/components/catalog/CatalogFilters";
 import CatalogGrid from "@/components/catalog/CatalogGrid";
+import ScrollToTop from "@/components/ui/ScrollToTop";
 import { BentoGrid, BentoCard } from "@/components/ui/BentoGrid";
 import { Car, Search } from "lucide-react";
 
@@ -36,7 +37,7 @@ export default async function CatalogPage(props: {
     dateTo: searchParams.dateTo || undefined,
   };
 
-  const [cars, brands] = await Promise.all([getCars(filters), getBrands()]);
+  const [cars, brands] = await Promise.all([getGroupedCars(filters), getBrands()]);
 
   return (
     <main className="min-h-screen bg-gray-50/50 pb-20">
@@ -74,6 +75,8 @@ export default async function CatalogPage(props: {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <CatalogGrid cars={cars} dateFrom={filters.dateFrom} dateTo={filters.dateTo} />
       </section>
+
+      <ScrollToTop />
     </main>
   );
 }

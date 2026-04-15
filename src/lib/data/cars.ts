@@ -58,6 +58,38 @@ export async function getCars(filters?: {
   });
 }
 
+export async function getGroupedCars(filters?: Parameters<typeof getCars>[0]) {
+  const cars = await getCars(filters);
+
+  const groups = new Map<string, typeof cars>();
+  for (const car of cars) {
+    const key = `${car.modelId}-${car.year}-${car.color}-${car.pricePerDay}`;
+    const group = groups.get(key);
+    if (group) {
+      group.push(car);
+    } else {
+      groups.set(key, [car]);
+    }
+  }
+
+  const grouped = Array.from(groups.values()).map((group) => {
+    const available = group.find((c) => c.status === "AVAILABLE");
+    const representative = available || group[0];
+    const availableCount = group.filter((c) => c.status === "AVAILABLE").length;
+    return { ...representative, availableCount, totalCount: group.length };
+  });
+
+  // Свободные авто первыми, затем по количеству доступных (убывание)
+  grouped.sort((a, b) => {
+    const aFree = a.status === "AVAILABLE" ? 1 : 0;
+    const bFree = b.status === "AVAILABLE" ? 1 : 0;
+    if (aFree !== bFree) return bFree - aFree;
+    return b.availableCount - a.availableCount;
+  });
+
+  return grouped;
+}
+
 export async function getCarBySlug(slug: string) {
   return prisma.car.findUnique({
     where: { slug },

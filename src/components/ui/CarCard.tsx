@@ -30,7 +30,7 @@ function formatShortDate(date: string | Date): string {
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
 
-export default async function CarCard({ car, dateFrom, dateTo }: { car: CarWithModel; dateFrom?: string; dateTo?: string }) {
+export default async function CarCard({ car, dateFrom, dateTo, availableCount }: { car: CarWithModel; dateFrom?: string; dateTo?: string; availableCount?: number }) {
   const t = await getTranslations("catalog");
 
   const title = `${car.model.brand.name} ${car.model.name}`;
@@ -59,6 +59,13 @@ export default async function CarCard({ car, dateFrom, dateTo }: { car: CarWithM
           <div className="absolute top-3 left-3 glass px-3 py-1 rounded-full text-xs font-bold text-gray-700">
             {car.year}
           </div>
+
+          {/* Available Count Badge */}
+          {availableCount !== undefined && availableCount > 1 && (
+            <div className="absolute top-12 left-3 bg-cyan-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+              {availableCount} {t("availableCars")}
+            </div>
+          )}
 
           {/* Status Badge */}
           {isRented && (

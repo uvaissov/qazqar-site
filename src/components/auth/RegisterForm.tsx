@@ -195,7 +195,7 @@ export default function RegisterForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className={inputClass}
-                placeholder="you@example.com"
+                placeholder="email@example.kz"
               />
             </div>
             <p className="text-sm text-gray-500">{t("otpWillBeSent")}</p>

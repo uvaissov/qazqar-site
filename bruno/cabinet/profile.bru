@@ -1,0 +1,15 @@
+meta {
+  name: Cabinet - Profile
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/cabinet/profile
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

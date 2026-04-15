@@ -38,8 +38,8 @@ export default async function HeroSection() {
             </div>
             
             {/* Decorative element */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-0 opacity-10 group-hover:opacity-20 transition-opacity">
+            <div className="pointer-events-none absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
+            <div className="pointer-events-none absolute bottom-0 right-0 opacity-10 group-hover:opacity-20 transition-opacity">
                <Car size={300} strokeWidth={0.5} />
             </div>
           </BentoCard>

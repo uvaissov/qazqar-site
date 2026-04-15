@@ -1,0 +1,15 @@
+meta {
+  name: Admin - Delete car
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/admin/cars/{{carId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

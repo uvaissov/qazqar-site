@@ -1,0 +1,22 @@
+export async function GET() {
+  const html = `<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QazQar API Docs</title>
+    <style>body { margin: 0; }</style>
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/api/openapi.json"
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"
+    ></script>
+  </body>
+</html>`;
+
+  return new Response(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}

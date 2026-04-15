@@ -1,0 +1,16 @@
+meta {
+  name: Catalog - Calculate price
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/catalog/{{carId}}/price
+  body: none
+  auth: none
+}
+
+query {
+  startDate: 2026-04-20 10:00
+  endDate: 2026-04-25 10:00
+}

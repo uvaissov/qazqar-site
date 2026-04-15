@@ -375,7 +375,7 @@ export default function BookingForm({
             className={`w-full px-4 py-3.5 border-2 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors font-semibold ${
               isLoggedIn ? "bg-gray-50 text-gray-500 border-gray-100" : emailExists ? "border-amber-300 bg-amber-50" : "bg-white text-gray-900 border-gray-100"
             }`}
-            placeholder="you@example.com"
+            placeholder="email@example.kz"
           />
           {!isLoggedIn && !showLoginBanner && (
             <p className="mt-1 text-xs text-gray-400 ml-1">{t("emailNote")}</p>

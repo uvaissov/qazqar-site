@@ -1,0 +1,32 @@
+meta {
+  name: Admin - Update car
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/admin/cars/{{carId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "modelId": "",
+    "number": "546CQ01",
+    "year": 2023,
+    "color": "Белый",
+    "transmission": "AUTOMATIC",
+    "fuelType": "AI92",
+    "seats": 5,
+    "hasAC": true,
+    "slug": "hyundai-accent-2023-white",
+    "descriptionRu": "",
+    "descriptionKz": "",
+    "images": []
+  }
+}

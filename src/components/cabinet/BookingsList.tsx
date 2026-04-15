@@ -205,9 +205,8 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
                   />
                 </Link>
               )}
-              <div className="flex flex-1 items-start justify-between">
-              <div>
-                <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <Link href={`/catalog/${booking.carSlug}`} className="font-semibold text-gray-900 hover:text-cyan-600">
                     {booking.carName}
                   </Link>
@@ -216,6 +215,14 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">{start} — {end}</p>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <p className="text-lg font-bold text-gray-900">
+                    {booking.totalPrice.toLocaleString()} ₸
+                  </p>
+                  {booking.discountPercent > 0 && (
+                    <p className="text-xs text-green-600">-{booking.discountPercent}%</p>
+                  )}
+                </div>
                 {booking.comment && (
                   <p className="mt-1 text-sm text-gray-400">{booking.comment}</p>
                 )}
@@ -224,15 +231,6 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
                     {t("cancelReason")}: {booking.cancellationReason}
                   </p>
                 )}
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-900">
-                  {booking.totalPrice.toLocaleString()} ₸
-                </p>
-                {booking.discountPercent > 0 && (
-                  <p className="text-xs text-green-600">-{booking.discountPercent}%</p>
-                )}
-              </div>
               </div>
             </div>
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getSession, signToken } from "@/lib/auth";
+import { getSession, signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
 import { yumeApi } from "@/lib/yume/api";
 import { hash } from "bcryptjs";
@@ -159,18 +159,13 @@ export async function POST(request: Request) {
     if (userId && !session) {
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (user) {
-        const token = await signToken({
+        const accessToken = await signAccessToken({
           userId: user.id,
           email: user.email!,
           role: user.role,
         });
-        response.cookies.set("auth-token", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          maxAge: 60 * 60 * 24 * 7,
-          path: "/",
-        });
+        const refreshToken = await signRefreshToken({ userId: user.id });
+        setAuthCookies(response, accessToken, refreshToken);
       }
     }
 

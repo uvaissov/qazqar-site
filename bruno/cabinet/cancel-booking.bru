@@ -1,0 +1,21 @@
+meta {
+  name: Cabinet - Cancel booking
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/cabinet/bookings/{{bookingId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "status": "CANCELLED"
+  }
+}

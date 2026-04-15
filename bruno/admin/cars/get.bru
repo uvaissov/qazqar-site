@@ -1,0 +1,15 @@
+meta {
+  name: Admin - Get car
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/admin/cars/{{carId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

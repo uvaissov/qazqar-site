@@ -1,0 +1,23 @@
+meta {
+  name: Cabinet - Update profile
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/cabinet/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "firstName": "Иван",
+    "lastName": "Петров",
+    "phone": "+77001234567"
+  }
+}

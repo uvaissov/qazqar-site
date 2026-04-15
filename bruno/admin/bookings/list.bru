@@ -1,0 +1,22 @@
+meta {
+  name: Admin - Bookings list
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/bookings
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+query {
+  status:
+  search:
+  page: 1
+  limit: 20
+}

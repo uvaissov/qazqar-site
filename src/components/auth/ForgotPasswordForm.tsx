@@ -153,7 +153,7 @@ export default function ForgotPasswordForm() {
               <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
                 {t("email")}
               </label>
-              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClass} placeholder="you@example.com" />
+              <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClass} placeholder="email@example.kz" />
             </div>
             <p className="text-sm text-gray-500">{t("resetOtpWillBeSent")}</p>
             {error && <p className="text-center text-sm text-red-600">{error}</p>}

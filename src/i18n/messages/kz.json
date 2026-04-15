@@ -24,6 +24,7 @@
     "availableFrom": "Бос болады",
     "bookedFrom": "Брондау",
     "rentedNoDate": "Бос емес (мерзімі белгісіз)",
+    "availableCars": "авто",
     "baseRate": "Базалық мөлшерлеме",
     "perDay": "/ тәулік",
     "filter": "Сүзгі",
@@ -258,6 +259,7 @@
     "faq": "FAQ",
     "reviews": "Пікірлер",
     "discounts": "Жеңілдіктер",
+    "media": "Медиа",
     "totalCars": "Барлық автокөліктер",
     "availableCars": "Қолжетімді",
     "pendingBookings": "Күтудегі өтінімдер",
@@ -357,7 +359,12 @@
     "inactive": "Белсенді емес",
     "slug": "URL (slug)",
     "empty": "Деректер жоқ",
-    "edit": "Өңдеу"
+    "edit": "Өңдеу",
+    "addReview": "Пікір қосу",
+    "editReview": "Пікірді өңдеу",
+    "reviewName": "Автор аты",
+    "reviewTextRu": "Пікір мәтіні (RU)",
+    "reviewTextKz": "Пікір мәтіні (KZ)"
   },
   "adminBrands": {
     "title": "Маркалар мен модельдер",

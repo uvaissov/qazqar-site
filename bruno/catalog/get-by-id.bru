@@ -1,0 +1,11 @@
+meta {
+  name: Catalog - Get car
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/catalog/{{carId}}
+  body: none
+  auth: none
+}

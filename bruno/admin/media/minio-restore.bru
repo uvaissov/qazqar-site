@@ -1,0 +1,15 @@
+meta {
+  name: Admin - Restore photos from MinIO
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/admin/minio-restore
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

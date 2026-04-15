@@ -15,3 +15,24 @@ export async function GET() {
 
   return NextResponse.json(photos);
 }
+
+export async function POST(request: Request) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { url, name } = await request.json();
+  if (!url) {
+    return NextResponse.json({ error: "url is required" }, { status: 400 });
+  }
+
+  const photo = await prisma.photo.upsert({
+    where: { url },
+    create: { url, name: name ?? null },
+    update: {},
+  });
+
+  return NextResponse.json(photo, { status: 201 });
+}

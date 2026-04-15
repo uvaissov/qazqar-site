@@ -16,11 +16,19 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const { approved } = body;
+    const { approved, authorName, rating, textRu, textKz } = body;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = {};
+    if (approved !== undefined) data.approved = approved;
+    if (authorName !== undefined) data.authorName = authorName;
+    if (rating !== undefined) data.rating = Math.min(5, Math.max(1, Number(rating)));
+    if (textRu !== undefined) data.textRu = textRu;
+    if (textKz !== undefined) data.textKz = textKz;
 
     const review = await prisma.review.update({
       where: { id },
-      data: { approved },
+      data,
     });
 
     return NextResponse.json(review);

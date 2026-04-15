@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { signToken } from "@/lib/auth";
+import { signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
 import { validateIin } from "@/lib/iin";
 import { yumeApi } from "@/lib/yume/api";
@@ -112,11 +112,12 @@ export async function POST(request: Request) {
       },
     });
 
-    const token = await signToken({
+    const accessToken = await signAccessToken({
       userId: user.id,
       email: user.email!,
       role: user.role,
     });
+    const refreshToken = await signRefreshToken({ userId: user.id });
 
     const response = NextResponse.json({
       user: {
@@ -126,15 +127,11 @@ export async function POST(request: Request) {
         lastName: user.lastName,
         role: user.role,
       },
+      accessToken,
+      refreshToken,
     });
 
-    response.cookies.set("auth-token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
+    setAuthCookies(response, accessToken, refreshToken);
 
     return response;
   } catch (error) {
