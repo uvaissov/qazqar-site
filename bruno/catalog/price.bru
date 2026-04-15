@@ -5,12 +5,12 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/catalog/{{carId}}/price
+  url: {{baseUrl}}/api/catalog/{{carId}}/price?dateStart=2026-04-20 10:00&dateEnd=2026-04-25 10:00
   body: none
   auth: none
 }
 
-query {
-  startDate: 2026-04-20 10:00
-  endDate: 2026-04-25 10:00
+params:query {
+  dateStart: 2026-04-20 10:00
+  dateEnd: 2026-04-25 10:00
 }
