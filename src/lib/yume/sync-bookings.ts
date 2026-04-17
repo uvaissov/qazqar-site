@@ -91,12 +91,17 @@ export async function syncUserBookings(userId: string): Promise<number> {
       continue;
     }
 
-    // Fetch cancellation reason from CRM comments if missing — take the latest
-    if (status === "CANCELLED" && !existing?.cancellationReason) {
+    // Fetch cancellation reason only on transition to CANCELLED (or first sync of an already-cancelled request)
+    const becameCancelled =
+      status === "CANCELLED" && existing?.status !== "CANCELLED";
+    if (becameCancelled) {
       try {
-        const comments = await yumeApi.getRequestComments(req.id);
+        const [comments, serviceUserId] = await Promise.all([
+          yumeApi.getRequestComments(req.id),
+          yumeApi.getServiceUserId(),
+        ]);
         const latest = comments
-          .filter((c) => c.body)
+          .filter((c) => c.body && c.user !== serviceUserId)
           .sort(
             (a, b) =>
               new Date(b.created_at).getTime() -

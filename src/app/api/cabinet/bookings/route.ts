@@ -31,7 +31,10 @@ export async function GET() {
         },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { requestId: { sort: "desc", nulls: "last" } },
+      { createdAt: "desc" },
+    ],
   });
 
   // Transform car to MarkDto-compatible format for Flutter app

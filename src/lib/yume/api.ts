@@ -11,6 +11,7 @@ type TokenPair = {
 
 class YumeApi {
   private tokens: TokenPair | null = null;
+  private serviceUserId: number | null = null;
 
   private async request<T>(
     method: string,
@@ -130,11 +131,27 @@ class YumeApi {
       if (payload.exp) {
         expiresAt = payload.exp * 1000 - 60_000; // 60s buffer
       }
+      // Extract service user ID so we can filter out comments we posted ourselves
+      const uid = payload.user_id ?? payload.user ?? payload.sub;
+      if (typeof uid === "number") {
+        this.serviceUserId = uid;
+      } else if (typeof uid === "string" && /^\d+$/.test(uid)) {
+        this.serviceUserId = Number(uid);
+      }
     } catch {
       // use fallback
     }
 
     this.tokens = { access, refresh, expiresAt };
+  }
+
+  /** ID сервисного аккаунта Yume, под которым BFF создаёт записи (комментарии и т.п.). */
+  async getServiceUserId(): Promise<number | null> {
+    if (this.serviceUserId == null) {
+      // Force login to populate tokens + serviceUserId
+      await this.getHeaders();
+    }
+    return this.serviceUserId;
   }
 
   // --- Public API methods ---

@@ -55,7 +55,10 @@ export default async function CabinetBookingsPage() {
         },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { requestId: { sort: "desc", nulls: "last" } },
+      { createdAt: "desc" },
+    ],
   });
 
   // Fetch documents on-demand from CRM for CONFIRMED/ACTIVE bookings, save to DB

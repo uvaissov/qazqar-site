@@ -219,11 +219,21 @@ async function syncActiveBookings() {
       if (newStatus !== booking.status || documents || depositAmount != null) {
         let cancellationReason: string | undefined;
 
-        if (newStatus === "CANCELLED") {
+        if (newStatus === "CANCELLED" && booking.status !== "CANCELLED") {
           try {
-            const comments = await yumeApi.getRequestComments(booking.requestId!);
-            if (comments.length > 0) {
-              cancellationReason = comments.map((c) => c.body).join("; ");
+            const [comments, serviceUserId] = await Promise.all([
+              yumeApi.getRequestComments(booking.requestId!),
+              yumeApi.getServiceUserId(),
+            ]);
+            const latest = comments
+              .filter((c) => c.body && c.user !== serviceUserId)
+              .sort(
+                (a, b) =>
+                  new Date(b.created_at).getTime() -
+                  new Date(a.created_at).getTime()
+              )[0];
+            if (latest?.body) {
+              cancellationReason = latest.body;
             }
           } catch (err) {
             console.error(`[Sync] Failed to fetch comments for CRM #${booking.requestId}:`, (err as Error).message);
