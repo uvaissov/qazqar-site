@@ -60,9 +60,19 @@ export async function POST(
       }
     }
 
-    // Find booking and verify ownership
-    const booking = await prisma.booking.findUnique({ where: { id } });
-    if (!booking || booking.userId !== session.userId) {
+    // Find booking and verify ownership (by userId OR shared clientId)
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { user: { select: { clientId: true } } },
+    });
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { clientId: true },
+    });
+    const ownedByClient =
+      currentUser?.clientId != null &&
+      booking?.user.clientId === currentUser.clientId;
+    if (!booking || (booking.userId !== session.userId && !ownedByClient)) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

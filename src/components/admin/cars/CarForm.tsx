@@ -31,6 +31,7 @@ interface CarData {
   fuelType: string;
   seats: number;
   hasAC: boolean;
+  deposit: number;
   status: string;
   photos: { photo: { url: string } }[];
   slug: string;
@@ -85,6 +86,7 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
   const [fuelType, setFuelType] = useState(car?.fuelType || "AI92");
   const [seats, setSeats] = useState(car?.seats?.toString() || "5");
   const [hasAC, setHasAC] = useState(car?.hasAC ?? true);
+  const [deposit, setDeposit] = useState(car?.deposit?.toString() || "0");
   const [status, setStatus] = useState(car?.status || "AVAILABLE");
   const [images, setImages] = useState<string[]>(car?.photos?.map(p => p.photo.url) || []);
   const [slug, setSlug] = useState(car?.slug || "");
@@ -141,6 +143,7 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
       fuelType,
       seats: Number(seats),
       hasAC,
+      deposit: Number(deposit) || 0,
       status,
       images,
       slug,
@@ -315,6 +318,22 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               onChange={(e) => setSeats(e.target.value)}
               min={2}
               max={12}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+            />
+          </div>
+
+          {/* Deposit */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Депозит (₸)
+            </label>
+            <input
+              type="number"
+              value={deposit}
+              onChange={(e) => setDeposit(e.target.value)}
+              min={0}
+              step={1000}
+              placeholder="30000"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
             />
           </div>

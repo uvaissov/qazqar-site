@@ -53,7 +53,7 @@ export async function GET(
     // Find car by id
     const car = await prisma.car.findUnique({
       where: { id },
-      select: { id: true, pricePerDay: true, status: true },
+      select: { id: true, pricePerDay: true, deposit: true, status: true },
     });
 
     if (!car || car.status !== "AVAILABLE") {
@@ -72,7 +72,7 @@ export async function GET(
     const conflictingBooking = await prisma.booking.findFirst({
       where: {
         carId: id,
-        status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
+        status: { in: ["CONFIRMED", "ACTIVE"] },
         startDate: { lt: end },
         endDate: { gt: start },
       },
@@ -82,6 +82,13 @@ export async function GET(
     if (conflictingBooking) {
       return NextResponse.json({ available: false, error: "CAR_UNAVAILABLE" });
     }
+
+    // Fetch all active discounts for display
+    const allDiscounts = await prisma.discount.findMany({
+      where: { active: true },
+      orderBy: { minDays: "asc" },
+      select: { id: true, minDays: true, maxDays: true, percent: true },
+    });
 
     // Find best applicable discount (highest percent where minDays <= days)
     const discount = await prisma.discount.findFirst({
@@ -97,6 +104,45 @@ export async function GET(
     const discountAmount = Math.round((subtotal * discountPercent) / 100);
     const totalPrice = subtotal - discountAmount;
 
+    // Deposit
+    const depositBase = car.deposit ?? 0;
+
+    // No-deposit surcharge: deposit × cardooPercent × (1 + VAT)
+    let withoutDeposit = 0;
+    if (depositBase > 0) {
+      // Find surcharge for day count (range match)
+      const surcharge = await prisma.noDepositSurcharge.findFirst({
+        where: {
+          minDay: { lte: days },
+          maxDay: { gte: days },
+        },
+      });
+
+      let cardooPercent: number;
+      if (surcharge) {
+        cardooPercent = surcharge.percent;
+      } else {
+        // Overflow: last configured day + step per extra day
+        const lastSurcharge = await prisma.noDepositSurcharge.findFirst({
+          orderBy: { maxDay: "desc" },
+        });
+        const settingStep = await prisma.appSetting.findUnique({
+          where: { key: "overflowDailyPercent" },
+        });
+        const lastDay = lastSurcharge?.maxDay ?? 0;
+        const lastPercent = lastSurcharge?.percent ?? 0;
+        const step = Number(settingStep?.value) || 0;
+        const extraDays = Math.max(0, days - lastDay);
+        cardooPercent = lastPercent + step * extraDays;
+      }
+
+      const settingVat = await prisma.appSetting.findUnique({
+        where: { key: "vatPercent" },
+      });
+      const vatPercent = Number(settingVat?.value) || 0;
+      withoutDeposit = Math.round(depositBase * cardooPercent / 100 * (1 + vatPercent / 100));
+    }
+
     return NextResponse.json({
       carId: car.id,
       pricePerDay: car.pricePerDay,
@@ -105,6 +151,10 @@ export async function GET(
       discountPercent,
       discountAmount,
       totalPrice,
+      depositBase,
+      withoutDeposit,
+      discounts: allDiscounts,
+      appliedDiscountId: discount?.id ?? null,
       available: true,
     });
   } catch (error) {

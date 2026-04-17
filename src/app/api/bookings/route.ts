@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { carId, customerName, customerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment } = body;
+    const { carId, customerName, customerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment, pickupAddressId, returnAddressId, withDeposit } = body;
 
     if (!carId || !customerName || !customerPhone || !startDate || !endDate) {
       return NextResponse.json(
@@ -51,7 +51,9 @@ export async function POST(request: Request) {
     const session = await getSession();
 
     if (session) {
-      userId = session.userId;
+      // Verify user actually exists in DB (session token may be stale)
+      const sessionUser = await prisma.user.findUnique({ where: { id: session.userId } });
+      if (sessionUser) userId = session.userId;
     } else if (customerEmail && otpCode) {
       // Verify OTP before creating user
       const otpValid = await verifyOtp(customerEmail, otpCode, "REGISTER")
@@ -94,6 +96,55 @@ export async function POST(request: Request) {
       userId = user.id;
     }
 
+    // Resolve address names for CRM comment
+    let pickupAddressName: string | null = null;
+    let returnAddressName: string | null = null;
+    if (pickupAddressId) {
+      const addr = await prisma.address.findUnique({ where: { id: pickupAddressId }, select: { name: true } });
+      pickupAddressName = addr?.name ?? null;
+    }
+    if (returnAddressId) {
+      const addr = await prisma.address.findUnique({ where: { id: returnAddressId }, select: { name: true } });
+      returnAddressName = addr?.name ?? null;
+    }
+
+    // Build CRM comment with addresses
+    const crmCommentParts: string[] = [];
+    if (pickupAddressName) crmCommentParts.push(`Адрес подачи: ${pickupAddressName}`);
+    if (returnAddressName) crmCommentParts.push(`Адрес возврата: ${returnAddressName}`);
+
+    // Deposit info
+    const depositAmount = car.deposit ?? 0;
+    let noDepositSurcharge = 0;
+    if (withDeposit === false && depositAmount > 0) {
+      // Calculate no-deposit surcharge
+      const surcharge = await prisma.noDepositSurcharge.findFirst({
+        where: { minDay: { lte: days }, maxDay: { gte: days } },
+      });
+      if (surcharge) {
+        const settingVat = await prisma.appSetting.findUnique({ where: { key: "vatPercent" } });
+        const vat = Number(settingVat?.value) || 0;
+        noDepositSurcharge = Math.round(depositAmount * surcharge.percent / 100 * (1 + vat / 100));
+      } else {
+        // Overflow
+        const lastSurcharge = await prisma.noDepositSurcharge.findFirst({ orderBy: { maxDay: "desc" } });
+        const settingStep = await prisma.appSetting.findUnique({ where: { key: "overflowDailyPercent" } });
+        const settingVat = await prisma.appSetting.findUnique({ where: { key: "vatPercent" } });
+        const lastPercent = lastSurcharge?.percent ?? 0;
+        const lastDay = lastSurcharge?.maxDay ?? 0;
+        const step = Number(settingStep?.value) || 0;
+        const vat = Number(settingVat?.value) || 0;
+        const percent = lastPercent + step * Math.max(0, days - lastDay);
+        noDepositSurcharge = Math.round(depositAmount * percent / 100 * (1 + vat / 100));
+      }
+      crmCommentParts.push(`Без депозита: надбавка ${noDepositSurcharge.toLocaleString()} ₸`);
+    } else if (depositAmount > 0) {
+      crmCommentParts.push(`С депозитом: ${depositAmount.toLocaleString()} ₸`);
+    }
+
+    if (comment) crmCommentParts.push(comment);
+    const crmComment = crmCommentParts.join("\n") || null;
+
     // Send request to Yume CRM first — check for date conflicts
     let requestId: number | undefined;
     const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
@@ -122,6 +173,36 @@ export async function POST(request: Request) {
           rent_end: crmEnd,
         });
 
+        // Add address info as comment to CRM request
+        if (crmComment) {
+          await yumeApi.addRequestComment(yumeRequest.id, crmComment);
+        }
+
+        // Add deposit to CRM request
+        if (depositAmount > 0) {
+          try {
+            if (withDeposit === false) {
+              await yumeApi.addDeposit(yumeRequest.id, {
+                deposit: `Без депозита (надбавка ${noDepositSurcharge.toLocaleString()} ₸)`,
+                type: 1,
+                status: 1,
+                amount: noDepositSurcharge.toString(),
+                payment_type: "3",
+              });
+            } else {
+              await yumeApi.addDeposit(yumeRequest.id, {
+                deposit: `Депозит`,
+                type: 1,
+                status: 1,
+                amount: depositAmount.toString(),
+                payment_type: "3",
+              });
+            }
+          } catch (depositErr) {
+            console.error("[Yume] Failed to add deposit:", depositErr);
+          }
+        }
+
         requestId = yumeRequest.id;
       } catch (err) {
         const message = (err as Error).message || "";
@@ -140,12 +221,19 @@ export async function POST(request: Request) {
         customerPhone,
         startDate: start,
         endDate: end,
-        totalPrice: days * car.pricePerDay * (1 - discountPercent / 100),
+        totalPrice: Math.round(days * car.pricePerDay * (1 - discountPercent / 100)),
         discountPercent,
+        withDeposit: withDeposit !== false,
+        depositAmount: withDeposit === false ? noDepositSurcharge : depositAmount,
+        depositLabel: depositAmount > 0
+          ? (withDeposit === false ? `Без депозита (надбавка ${noDepositSurcharge.toLocaleString()} ₸)` : `Депозит ${depositAmount.toLocaleString()} ₸`)
+          : null,
         status: "PENDING",
         comment: comment || null,
         userId,
         requestId,
+        pickupAddressId: pickupAddressId || null,
+        returnAddressId: returnAddressId || null,
       },
     });
 
@@ -171,9 +259,10 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error("Booking error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Booking error:", msg, error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", detail: msg },
       { status: 500 }
     );
   }

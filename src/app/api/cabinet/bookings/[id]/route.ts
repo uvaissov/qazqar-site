@@ -20,8 +20,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  const booking = await prisma.booking.findUnique({ where: { id } });
-  if (!booking || booking.userId !== session.userId) {
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: { user: { select: { clientId: true } } },
+  });
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { clientId: true },
+  });
+  const ownedByClient =
+    currentUser?.clientId != null &&
+    booking?.user.clientId === currentUser.clientId;
+  if (!booking || (booking.userId !== session.userId && !ownedByClient)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

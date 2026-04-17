@@ -40,6 +40,47 @@ async function main() {
   }
   console.log(`Discounts: ${discountsData.length} created`);
 
+  // 3. No-deposit surcharges (Cardoo %)
+  await prisma.noDepositSurcharge.deleteMany();
+  const surchargesData = [
+    { minDay: 1, maxDay: 1, percent: 3.00 },
+    { minDay: 2, maxDay: 2, percent: 3.00 },
+    { minDay: 3, maxDay: 3, percent: 3.00 },
+    { minDay: 4, maxDay: 4, percent: 4.05 },
+    { minDay: 5, maxDay: 5, percent: 5.10 },
+    { minDay: 6, maxDay: 6, percent: 6.15 },
+    { minDay: 7, maxDay: 7, percent: 7.20 },
+    { minDay: 8, maxDay: 8, percent: 8.25 },
+    { minDay: 9, maxDay: 9, percent: 9.30 },
+    { minDay: 10, maxDay: 10, percent: 10.35 },
+    { minDay: 11, maxDay: 11, percent: 11.40 },
+    { minDay: 12, maxDay: 12, percent: 12.45 },
+    { minDay: 13, maxDay: 30, percent: 13.00 },
+    { minDay: 31, maxDay: 31, percent: 13.44 },
+    { minDay: 32, maxDay: 32, percent: 13.88 },
+    { minDay: 33, maxDay: 33, percent: 14.32 },
+    { minDay: 34, maxDay: 34, percent: 14.76 },
+    { minDay: 35, maxDay: 35, percent: 15.20 },
+  ];
+  for (const s of surchargesData) {
+    await prisma.noDepositSurcharge.create({ data: s });
+  }
+  console.log(`Surcharges: ${surchargesData.length} created`);
+
+  // 4. App settings
+  const settingsData = [
+    { key: 'vatPercent', value: '16' },
+    { key: 'overflowDailyPercent', value: '0.44' },
+  ];
+  for (const s of settingsData) {
+    await prisma.appSetting.upsert({
+      where: { key: s.key },
+      update: { value: s.value },
+      create: s,
+    });
+  }
+  console.log(`Settings: ${settingsData.length} upserted`);
+
   // 6. FAQ items
   await prisma.faqItem.deleteMany();
   const faqData = [
@@ -156,12 +197,40 @@ async function main() {
   }
   console.log(`Reviews: ${reviewsData.length} created`);
 
+  // 8. Addresses
+  await prisma.address.deleteMany();
+  const addressesData = [
+    {
+      name: 'Офис Qazqar (Конаев)',
+      address: 'ул. Динмухамед Конаев, 2, Астана',
+      lat: 51.130892,
+      lng: 71.418401,
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      name: 'Офис Qazqar (Кабанбай батыра)',
+      address: 'просп. Кабанбай батыра, 119, Астана',
+      lat: 51.026815,
+      lng: 71.460858,
+      isActive: true,
+      sortOrder: 2,
+    },
+  ];
+  for (const addr of addressesData) {
+    await prisma.address.create({ data: addr });
+  }
+  console.log(`Addresses: ${addressesData.length} created`);
+
   // Summary
   const counts = {
     users: await prisma.user.count(),
     discounts: await prisma.discount.count(),
+    surcharges: await prisma.noDepositSurcharge.count(),
+    settings: await prisma.appSetting.count(),
     faqItems: await prisma.faqItem.count(),
     reviews: await prisma.review.count(),
+    addresses: await prisma.address.count(),
   };
 
   console.log('\n--- Seed Summary ---');

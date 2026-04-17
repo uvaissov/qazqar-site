@@ -108,6 +108,41 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 | 161 | Акт приема передачи |
 | 162 | Путевой лист |
 
+## Поиск клиента в CRM (важно)
+
+Для **любого** поиска клиента в Yume CRM (регистрация, привязка из админки, синхронизация) используй `yumeApi.searchClients(query)` — это fulltext-поиск (`/v1/crm/clients/?search=`), который ищет по имени, телефону, email, ИИН.
+
+**НЕ используй** `findClientByPhone()` / `findClientByEmail()` / `findClientByIin()` для основного поиска — они дёргают `*__exact`-фильтры, и из-за разницы в форматах телефона (`+77001234567` vs `77001234567` vs `8700...`) или регистре email — часто промахиваются. Эти методы оставлены только для специфичных случаев точного совпадения.
+
+**Канонический паттерн** (см. `/api/admin/users/[id]/link-crm` GET и `/api/auth/register`):
+
+```typescript
+const candidates = new Map<number, YumeClient>();
+if (email) for (const c of await yumeApi.searchClients(email)) candidates.set(c.id, c);
+if (phone) for (const c of await yumeApi.searchClients(phone)) candidates.set(c.id, c);
+if (iin)   for (const c of await yumeApi.searchClients(iin))   candidates.set(c.id, c);
+```
+
+Дедупликация по `id` через Map. Если ничего не нашлось — создаём через `createClient()`.
+
+## Регистрация клиента — поток
+
+`POST /api/auth/register` принимает `{ firstName, lastName, email, phone, iin, isResident, password, otpCode }`.
+
+Шаги:
+1. Валидация ИИН формата + контрольной суммы (`src/lib/iin.ts`, `validateIin()`).
+2. Поиск/создание CRM-клиента по схеме выше → `crmClientId`.
+3. Проверка OTP (`verifyOtp(email, code, "REGISTER")`).
+4. Проверка дубликата email (`prisma.user.findUnique({ where: { email }})` → 409 `EMAIL_EXISTS`).
+5. Создание юзера с `clientId: crmClientId`, выдача JWT cookies.
+
+**Важно:** поля `User.iin` и `User.clientId` **НЕ уникальные** — несколько локальных аккаунтов могут указывать на одного CRM-клиента или иметь одинаковый ИИН. Не возвращай `IIN_EXISTS` / unique-constraint ошибки на этих полях.
+
+Шаги OTP-флоу с фронта (используется на сайте `RegisterForm` и в Flutter `sign_up`):
+1. `POST /api/auth/send-otp` `{email, type: "REGISTER"}` → 409 если email уже занят.
+2. `POST /api/auth/verify-otp` `{email, code, type: "REGISTER"}` → `{verified: true}`.
+3. `POST /api/auth/register` с `otpCode` + всеми полями → выдаёт JWT.
+
 ## Команды
 
 ```bash

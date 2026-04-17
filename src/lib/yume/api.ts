@@ -299,6 +299,29 @@ class YumeApi {
     );
   }
 
+  // Deposits
+  async addDeposit(requestId: number, data: {
+    deposit: string;
+    type: number;
+    status: number;
+    amount?: string;
+    payment_type?: string;
+  }): Promise<{ id: number }> {
+    return this.request<{ id: number }>(
+      "POST",
+      `/v1/crm/requests/${requestId}/deposits/`,
+      data
+    );
+  }
+
+  async getDeposits(requestId: number): Promise<{ id: number; deposit: string; type: number; status: number; amount: string | null }[]> {
+    const data = await this.request<{ results: { id: number; deposit: string; type: number; status: number; amount: string | null }[] }>(
+      "GET",
+      `/v1/crm/requests/${requestId}/deposits/`
+    );
+    return data.results ?? [];
+  }
+
   // Documents
   async getRequestDocuments(requestId: number): Promise<YumeDocument[]> {
     const data = await this.request<YumeListResponse<YumeDocument>>(

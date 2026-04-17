@@ -7,6 +7,225 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id           String     @id @default(cuid())
+  email        String?    @unique
+  phone        String?    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole   @default(CLIENT)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  clientId     Int?
+  iin          String?
+  isResident   Boolean    @default(true)
+  blogPosts    BlogPost[]
+  bookings     Booking[]
+
+  @@map("users")
+}
+
+model CarBrand {
+  id     String     @id @default(cuid())
+  name   String     @unique
+  slug   String     @unique
+  logo   String?
+  models CarModel[]
+
+  @@map("car_brands")
+}
+
+model CarModel {
+  id      String   @id @default(cuid())
+  name    String
+  slug    String   @unique
+  brandId String
+  brand   CarBrand @relation(fields: [brandId], references: [id])
+  cars    Car[]
+
+  @@map("car_models")
+}
+
+model Car {
+  id            String       @id @default(cuid())
+  modelId       String
+  year          Int
+  color         String
+  pricePerDay   Int          @default(15000)
+  transmission  Transmission @default(AUTOMATIC)
+  fuelType      FuelType     @default(AI92)
+  seats         Int          @default(5)
+  hasAC         Boolean      @default(true)
+  status        CarStatus    @default(AVAILABLE)
+  slug          String       @unique
+  descriptionRu String?
+  descriptionKz String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  availableFrom DateTime?
+  inventoryId   Int          @unique
+  nextBookingAt DateTime?
+  number        String       @unique
+  techPassport  String?
+  totalDistance Int          @default(0)
+  vin           String?
+  deposit       Int          @default(0)
+  bookings      Booking[]
+  photos        CarPhoto[]
+  model         CarModel     @relation(fields: [modelId], references: [id])
+
+  @@map("cars")
+}
+
+model Photo {
+  id        String     @id @default(cuid())
+  url       String     @unique
+  name      String?
+  createdAt DateTime   @default(now())
+  cars      CarPhoto[]
+
+  @@map("photos")
+}
+
+model CarPhoto {
+  carId     String
+  photoId   String
+  sortOrder Int    @default(0)
+  car       Car    @relation(fields: [carId], references: [id], onDelete: Cascade)
+  photo     Photo  @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@id([carId, photoId])
+  @@map("car_photos")
+}
+
+model Booking {
+  id                 String        @id @default(cuid())
+  userId             String?
+  carId              String
+  startDate          DateTime
+  endDate            DateTime
+  totalPrice         Int
+  discountPercent    Int           @default(0)
+  status             BookingStatus @default(PENDING)
+  customerName       String
+  customerPhone      String
+  comment            String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  cancellationReason String?
+  documents          Json?
+  depositAmount      Int?
+  depositLabel       String?
+  withDeposit        Boolean       @default(true)
+  requestId          Int?          @unique
+  pickupAddressId    String?
+  returnAddressId    String?
+  car                Car           @relation(fields: [carId], references: [id])
+  pickupAddress      Address?      @relation("PickupAddress", fields: [pickupAddressId], references: [id])
+  returnAddress      Address?      @relation("ReturnAddress", fields: [returnAddressId], references: [id])
+  user               User?         @relation(fields: [userId], references: [id])
+
+  @@map("bookings")
+}
+
+model BlogPost {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  titleRu    String
+  titleKz    String   @default("")
+  contentRu  String
+  contentKz  String   @default("")
+  coverImage String?
+  published  Boolean  @default(false)
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  author     User     @relation(fields: [authorId], references: [id])
+
+  @@map("blog_posts")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  authorName String
+  rating     Int
+  textRu     String
+  textKz     String   @default("")
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@map("reviews")
+}
+
+model Discount {
+  id      String  @id @default(cuid())
+  minDays Int
+  maxDays Int
+  percent Int
+  active  Boolean @default(true)
+
+  @@map("discounts")
+}
+
+model NoDepositSurcharge {
+  id      String @id @default(cuid())
+  minDay  Int
+  maxDay  Int
+  percent Float
+
+  @@map("no_deposit_surcharges")
+}
+
+model AppSetting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+
+  @@map("app_settings")
+}
+
+model FaqItem {
+  id         String  @id @default(cuid())
+  sortOrder  Int     @default(0)
+  questionRu String
+  questionKz String  @default("")
+  answerRu   String
+  answerKz   String  @default("")
+  published  Boolean @default(true)
+
+  @@map("faq_items")
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  email     String
+  code      String
+  type      OtpType
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email, code, type])
+  @@map("otp_codes")
+}
+
+model Address {
+  id             String    @id @default(cuid())
+  name           String
+  address        String
+  lat            Float?
+  lng            Float?
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  pickupBookings Booking[] @relation("PickupAddress")
+  returnBookings Booking[] @relation("ReturnAddress")
+
+  @@map("addresses")
+}
+
 enum UserRole {
   CLIENT
   ADMIN
@@ -38,208 +257,8 @@ enum BookingStatus {
   CANCELLED
 }
 
-model User {
-  id           String    @id @default(cuid())
-  email        String?   @unique
-  phone        String?   @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  iin          String?   @unique
-  isResident   Boolean   @default(true)
-  clientId     Int?      @unique
-  role         UserRole  @default(CLIENT)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  bookings  Booking[]
-  blogPosts BlogPost[]
-
-  @@map("users")
-}
-
-model CarBrand {
-  id   String @id @default(cuid())
-  name String @unique
-  slug String @unique
-  logo String?
-
-  models CarModel[]
-
-  @@map("car_brands")
-}
-
-model CarModel {
-  id      String   @id @default(cuid())
-  name    String
-  slug    String   @unique
-  brandId String
-
-  brand CarBrand @relation(fields: [brandId], references: [id])
-  cars  Car[]
-
-  @@map("car_models")
-}
-
-model Car {
-  id             String       @id @default(cuid())
-  inventoryId    Int          @unique
-  modelId        String
-  number         String       @unique
-  techPassport   String?
-  vin            String?
-  year           Int
-  color          String
-  totalDistance   Int          @default(0)
-  transmission   Transmission @default(AUTOMATIC)
-  fuelType       FuelType     @default(AI92)
-  seats          Int          @default(5)
-  hasAC          Boolean      @default(true)
-  pricePerDay    Int          @default(15000)
-  status           CarStatus    @default(AVAILABLE)
-  nextBookingAt    DateTime?
-  availableFrom    DateTime?
-  slug             String       @unique
-  descriptionRu  String?
-  descriptionKz  String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  model    CarModel  @relation(fields: [modelId], references: [id])
-  bookings Booking[]
-  photos   CarPhoto[]
-
-  @@map("cars")
-}
-
-model Photo {
-  id        String     @id @default(cuid())
-  url       String     @unique
-  name      String?
-  createdAt DateTime   @default(now())
-
-  cars CarPhoto[]
-
-  @@map("photos")
-}
-
-model CarPhoto {
-  carId     String
-  photoId   String
-  sortOrder Int      @default(0)
-
-  car   Car   @relation(fields: [carId], references: [id], onDelete: Cascade)
-  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
-
-  @@id([carId, photoId])
-  @@map("car_photos")
-}
-
-model Booking {
-  id              String        @id @default(cuid())
-  requestId       Int?          @unique
-  userId          String?
-  carId           String
-  startDate       DateTime
-  endDate         DateTime
-  totalPrice      Int
-  discountPercent Int           @default(0)
-  status          BookingStatus @default(PENDING)
-  customerName    String
-  customerPhone   String
-  comment            String?
-  cancellationReason String?
-  documents          Json?
-  createdAt          DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  user User? @relation(fields: [userId], references: [id])
-  car  Car   @relation(fields: [carId], references: [id])
-
-  @@map("bookings")
-}
-
-model BlogPost {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  titleRu   String
-  titleKz   String   @default("")
-  contentRu String
-  contentKz String   @default("")
-  coverImage String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  author User @relation(fields: [authorId], references: [id])
-
-  @@map("blog_posts")
-}
-
-model Review {
-  id         String   @id @default(cuid())
-  authorName String
-  rating     Int
-  textRu     String
-  textKz     String   @default("")
-  approved   Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  @@map("reviews")
-}
-
-model Discount {
-  id      String  @id @default(cuid())
-  minDays Int
-  maxDays Int
-  percent Int
-  active  Boolean @default(true)
-
-  @@map("discounts")
-}
-
-model FaqItem {
-  id         String  @id @default(cuid())
-  sortOrder  Int     @default(0)
-  questionRu String
-  questionKz String  @default("")
-  answerRu   String
-  answerKz   String  @default("")
-  published  Boolean @default(true)
-
-  @@map("faq_items")
-}
-
 enum OtpType {
   REGISTER
   RESET_PASSWORD
   LOGIN
-}
-
-model OtpCode {
-  id        String   @id @default(cuid())
-  email     String
-  code      String
-  type      OtpType
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@index([email, code, type])
-  @@map("otp_codes")
-}
-
-model Address {
-  id        String   @id @default(cuid())
-  name      String
-  address   String
-  lat       Float?
-  lng       Float?
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("addresses")
 }

@@ -34,8 +34,15 @@ export default async function CabinetBookingsPage() {
   // Sync bookings from CRM before displaying
   await syncUserBookings(session.userId).catch(() => {});
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { clientId: true },
+  });
+
   const bookings = await prisma.booking.findMany({
-    where: { userId: session.userId },
+    where: currentUser?.clientId
+      ? { user: { clientId: currentUser.clientId } }
+      : { userId: session.userId },
     include: {
       car: {
         include: {

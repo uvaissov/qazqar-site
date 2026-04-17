@@ -18,19 +18,39 @@ export async function syncUserBookings(userId: string): Promise<number> {
     select: { id: true, clientId: true },
   });
 
-  if (!user?.clientId) return 0;
+  if (!user?.clientId) {
+    console.log(`[SyncBookings] user ${userId}: no clientId, skipping`);
+    return 0;
+  }
 
   const requests = await yumeApi.getAllClientRequests(user.clientId);
+  console.log(
+    `[SyncBookings] clientId=${user.clientId}: fetched ${requests.length} CRM requests`
+  );
 
   let synced = 0;
+  let skippedNoInv = 0;
+  let skippedNoCar = 0;
   for (const req of requests) {
     const firstInv = req.inventories[0];
-    if (!firstInv) continue;
+    if (!firstInv) {
+      skippedNoInv++;
+      console.log(
+        `[SyncBookings] CRM #${req.id} (status=${req.status_color}): no inventories attached, skipping`
+      );
+      continue;
+    }
 
     const car = await prisma.car.findUnique({
       where: { inventoryId: firstInv.inventory },
     });
-    if (!car) continue;
+    if (!car) {
+      skippedNoCar++;
+      console.log(
+        `[SyncBookings] CRM #${req.id}: car inventoryId=${firstInv.inventory} (${firstInv.inventory_name} ${firstInv.inventory_car_number}) not in local DB, skipping`
+      );
+      continue;
+    }
 
     const status = STATUS_MAP[req.status_color] || "PENDING";
 
@@ -71,18 +91,21 @@ export async function syncUserBookings(userId: string): Promise<number> {
       continue;
     }
 
-    // Fetch cancellation reason from CRM comments if missing
+    // Fetch cancellation reason from CRM comments if missing — take the latest
     if (status === "CANCELLED" && !existing?.cancellationReason) {
       try {
         const comments = await yumeApi.getRequestComments(req.id);
-        const reason = comments
+        const latest = comments
           .filter((c) => c.body)
-          .map((c) => c.body)
-          .join("; ");
-        if (reason) {
+          .sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime()
+          )[0];
+        if (latest?.body) {
           await prisma.booking.updateMany({
             where: { requestId: req.id },
-            data: { cancellationReason: reason },
+            data: { cancellationReason: latest.body },
           });
         }
       } catch {
@@ -121,5 +144,8 @@ export async function syncUserBookings(userId: string): Promise<number> {
     synced++;
   }
 
+  console.log(
+    `[SyncBookings] clientId=${user.clientId}: synced=${synced}, skippedNoInv=${skippedNoInv}, skippedNoCar=${skippedNoCar}`
+  );
   return synced;
 }

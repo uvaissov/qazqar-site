@@ -63,6 +63,7 @@ export async function PUT(
       slug,
       descriptionRu,
       descriptionKz,
+      deposit,
       images,
     } = body;
 
@@ -109,6 +110,7 @@ export async function PUT(
         hasAC: hasAC ?? true,
         status: status || "AVAILABLE",
         slug,
+        deposit: Number(deposit) || 0,
         descriptionRu: descriptionRu || null,
         descriptionKz: descriptionKz || null,
       },

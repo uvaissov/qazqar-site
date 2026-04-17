@@ -15,6 +15,9 @@ interface BookingWithCar {
   discountPercent: number;
   status: string;
   comment: string | null;
+  depositAmount: number | null;
+  depositLabel: string | null;
+  withDeposit: boolean;
   createdAt: string;
   updatedAt: string;
   car: {
@@ -254,6 +257,20 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
                   </div>
                 )}
               </div>
+              {booking.depositAmount != null && booking.depositAmount > 0 && (
+                <div>
+                  <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    Депозит
+                  </label>
+                  <p className="mt-1 text-gray-900 font-medium">
+                    {booking.depositLabel || (booking.withDeposit ? "С депозитом" : "Без депозита")}
+                    {" — "}
+                    <span className={booking.withDeposit ? "text-blue-600" : "text-amber-600"}>
+                      {booking.depositAmount.toLocaleString()} &#8376;
+                    </span>
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
                   {t("comment")}

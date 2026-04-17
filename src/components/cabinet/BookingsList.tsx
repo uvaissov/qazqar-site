@@ -33,6 +33,9 @@ type Booking = {
   status: string;
   comment: string | null;
   cancellationReason: string | null;
+  depositAmount: number | null;
+  depositLabel: string | null;
+  withDeposit: boolean;
   documents: BookingDocument[];
   createdAt: string;
 };
@@ -223,6 +226,11 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
                     <p className="text-xs text-green-600">-{booking.discountPercent}%</p>
                   )}
                 </div>
+                {booking.depositAmount != null && booking.depositAmount > 0 && (
+                  <p className={`text-xs font-medium ${booking.withDeposit ? "text-blue-600" : "text-amber-600"}`}>
+                    {booking.withDeposit ? "Депозит" : "Без депозита"}: {booking.depositAmount.toLocaleString()} ₸
+                  </p>
+                )}
                 {booking.comment && (
                   <p className="mt-1 text-sm text-gray-400">{booking.comment}</p>
                 )}

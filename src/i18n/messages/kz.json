@@ -102,7 +102,11 @@
     "cancelLogin": "Болдырмау",
     "loginError": "Құпия сөз қате",
     "verifying": "Тексерілуде...",
-    "accountFoundInline": "Бұл пошта тіркелген. Жалғастыру үшін кіріңіз:"
+    "accountFoundInline": "Бұл пошта тіркелген. Жалғастыру үшін кіріңіз:",
+    "loginRequired": "Өтінім жіберу үшін авторизациядан өту қажет",
+    "pickupAddress": "Беру мекенжайы",
+    "returnAddress": "Қайтару мекенжайы",
+    "selectAddress": "Мекенжайды таңдаңыз"
   },
   "catalogPage": {
     "title": "Автокөліктер каталогы",
@@ -259,6 +263,7 @@
     "faq": "FAQ",
     "reviews": "Пікірлер",
     "discounts": "Жеңілдіктер",
+    "surcharges": "Қосымша төлем",
     "media": "Медиа",
     "totalCars": "Барлық автокөліктер",
     "availableCars": "Қолжетімді",
@@ -352,6 +357,10 @@
     "rating": "Рейтинг",
     "discounts": "Жеңілдіктер",
     "addDiscount": "Жеңілдік қосу",
+    "surcharges": "Кепілсіз қосымша төлем",
+    "surchargesDescription": "Кепілсіз нұсқаны таңдағанда жалға алу құнына қосымша төлем",
+    "addSurcharge": "Қосымша төлем қосу",
+    "amount": "Сома",
     "minDays": "Мин. күн",
     "maxDays": "Макс. күн",
     "percent": "Пайыз",

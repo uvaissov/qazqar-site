@@ -3,6 +3,7 @@ import { signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
 import { validateIin } from "@/lib/iin";
 import { yumeApi } from "@/lib/yume/api";
+import { findClientCandidates } from "@/lib/yume/find-clients";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 
@@ -37,30 +38,12 @@ export async function POST(request: Request) {
         );
       }
 
-      // Check if IIN already used locally
-      const iinExists = await prisma.user.findUnique({ where: { iin } });
-      if (iinExists) {
-        return NextResponse.json(
-          { error: "IIN_EXISTS" },
-          { status: 409 }
-        );
-      }
     }
 
-    // Find or create client in Yume CRM: email → phone → IIN
+    // Find or create client in Yume CRM (порядок поиска: ИИН → email → телефон).
     try {
-      const byEmail = await yumeApi.searchClients(email);
-      let crmClient = byEmail[0] || null;
-
-      if (!crmClient && phone) {
-        const byPhone = await yumeApi.findClientByPhone(phone);
-        crmClient = byPhone;
-      }
-
-      if (!crmClient && iin) {
-        const byIin = await yumeApi.searchClients(iin);
-        crmClient = byIin[0] || null;
-      }
+      const candidates = await findClientCandidates({ iin, email, phone });
+      const crmClient = candidates[0];
 
       if (crmClient) {
         crmClientId = crmClient.id;

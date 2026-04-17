@@ -1,0 +1,20 @@
+meta {
+  name: Catalog - Grouped (as on site)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/catalog/grouped
+  body: none
+  auth: none
+}
+
+params:query {
+  brand:
+  transmission:
+  priceMin:
+  priceMax:
+  dateFrom:
+  dateTo:
+}

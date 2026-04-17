@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { CheckCircle2, AlertCircle, Calendar, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertCircle, Calendar, Send, Sparkles, MapPin } from "lucide-react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ru } from "date-fns/locale/ru";
 import { kk } from "date-fns/locale/kk";
@@ -15,9 +15,16 @@ type Discount = {
   percent: number;
 };
 
+type Address = {
+  id: string;
+  name: string;
+  address: string;
+};
+
 type BookingFormProps = {
   carId: string;
   pricePerDay: number;
+  deposit: number;
   discounts: Discount[];
   initialDateFrom?: string;
   initialDateTo?: string;
@@ -37,6 +44,7 @@ function formatDateForAPI(d: Date, time: string): string {
 export default function BookingForm({
   carId,
   pricePerDay,
+  deposit,
   discounts,
   initialDateFrom,
   initialDateTo,
@@ -65,6 +73,9 @@ export default function BookingForm({
   const [endDate, setEndDate] = useState<Date | null>(parseInitialDate(initialDateTo));
   const [endTime, setEndTime] = useState("09:00");
   const [comment, setComment] = useState("");
+  const [pickupAddressId, setPickupAddressId] = useState("");
+  const [returnAddressId, setReturnAddressId] = useState("");
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [needsOtp, setNeedsOtp] = useState(false);
@@ -72,6 +83,7 @@ export default function BookingForm({
   const [cooldown, setCooldown] = useState(0);
   const [error, setError] = useState("");
   const resultRef = useRef<HTMLDivElement>(null);
+  const loginBannerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to result message
   useEffect(() => {
@@ -79,6 +91,27 @@ export default function BookingForm({
       resultRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }, [success, error]);
+  const [withDepositSelected, setWithDepositSelected] = useState(true);
+  const [withoutDepositAmount, setWithoutDepositAmount] = useState(0);
+
+  // Fetch withoutDeposit amount from price API when dates change
+  useEffect(() => {
+    if (!startDate || !endDate || deposit <= 0) {
+      setWithoutDepositAmount(0);
+      return;
+    }
+    const dateStart = formatDateForAPI(startDate, startTime);
+    const dateEnd = formatDateForAPI(endDate, endTime);
+    fetch(`/api/catalog/${carId}/price?dateStart=${encodeURIComponent(dateStart)}&dateEnd=${encodeURIComponent(dateEnd)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.withoutDeposit) {
+          setWithoutDepositAmount(data.withoutDeposit);
+        }
+      })
+      .catch(() => {});
+  }, [startDate, endDate, startTime, endTime, carId, deposit]);
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
   const [emailExists, setEmailExists] = useState(false);
@@ -137,6 +170,17 @@ export default function BookingForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    fetch("/api/addresses")
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setAddresses(data.addresses || []);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -176,6 +220,10 @@ export default function BookingForm({
       if (emailExists) {
         // Already known user — prompt to login first
         setShowLoginBanner(true);
+        setError(t("loginRequired"));
+        setTimeout(() => {
+          loginBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
         return;
       }
 
@@ -235,6 +283,9 @@ export default function BookingForm({
         startDate: startDate ? formatDateForAPI(startDate, startTime) : "",
         endDate: endDate ? formatDateForAPI(endDate, endTime) : "",
         comment: comment || undefined,
+        pickupAddressId: pickupAddressId || undefined,
+        returnAddressId: returnAddressId || undefined,
+        withDeposit: deposit > 0 ? withDepositSelected : undefined,
       }),
     });
 
@@ -254,9 +305,11 @@ export default function BookingForm({
     setSuccess(true);
     setIsNewUser(!!data.newUser);
     setNeedsOtp(false);
-    setStartDate("");
-    setEndDate("");
+    setStartDate(null);
+    setEndDate(null);
     setComment("");
+    setPickupAddressId("");
+    setReturnAddressId("");
 
     if (!isLoggedIn) {
       setIsLoggedIn(true);
@@ -383,7 +436,7 @@ export default function BookingForm({
 
           {/* Login banner — appears when email exists */}
           {showLoginBanner && !isLoggedIn && (
-            <div className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+            <div ref={loginBannerRef} className="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl animate-in fade-in">
               <p className="text-sm font-medium text-amber-800 mb-3">{t("accountFoundInline")}</p>
 
               {!loginMode && (
@@ -609,6 +662,56 @@ export default function BookingForm({
            </div>
         </div>
 
+        {/* Addresses */}
+        {addresses.length > 0 && (
+          <div className="space-y-5">
+            <div>
+              <label
+                htmlFor="booking-pickup-address"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {t("pickupAddress")}
+                </span>
+              </label>
+              <select
+                id="booking-pickup-address"
+                value={pickupAddressId}
+                onChange={(e) => setPickupAddressId(e.target.value)}
+                className="w-full px-4 py-3.5 bg-white border-2 border-gray-100 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors font-semibold text-gray-900"
+              >
+                <option value="">{t("selectAddress")}</option>
+                {addresses.map((addr) => (
+                  <option key={addr.id} value={addr.id}>{addr.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="booking-return-address"
+                className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 mb-2"
+              >
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {t("returnAddress")}
+                </span>
+              </label>
+              <select
+                id="booking-return-address"
+                value={returnAddressId}
+                onChange={(e) => setReturnAddressId(e.target.value)}
+                className="w-full px-4 py-3.5 bg-white border-2 border-gray-100 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors font-semibold text-gray-900"
+              >
+                <option value="">{t("selectAddress")}</option>
+                {addresses.map((addr) => (
+                  <option key={addr.id} value={addr.id}>{addr.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* Comment */}
         <div>
           <label
@@ -625,6 +728,49 @@ export default function BookingForm({
             className="w-full px-4 py-3.5 bg-white border-2 border-gray-100 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors font-semibold text-gray-900 resize-none"
           />
         </div>
+
+        {/* Deposit selection */}
+        {calculation && deposit > 0 && (
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">
+              Депозит
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setWithDepositSelected(true)}
+                className={`p-3 rounded-xl border-2 text-center transition-all ${
+                  withDepositSelected
+                    ? "border-cyan-500 bg-cyan-50"
+                    : "border-gray-100 bg-white hover:border-gray-200"
+                }`}
+              >
+                <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${withDepositSelected ? "text-cyan-600" : "text-gray-400"}`}>
+                  С депозитом
+                </div>
+                <div className={`text-lg font-black ${withDepositSelected ? "text-cyan-600" : "text-gray-900"}`}>
+                  {deposit.toLocaleString()} ₸
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWithDepositSelected(false)}
+                className={`p-3 rounded-xl border-2 text-center transition-all ${
+                  !withDepositSelected
+                    ? "border-cyan-500 bg-cyan-50"
+                    : "border-gray-100 bg-white hover:border-gray-200"
+                }`}
+              >
+                <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${!withDepositSelected ? "text-cyan-600" : "text-gray-400"}`}>
+                  Без депозита
+                </div>
+                <div className={`text-lg font-black ${!withDepositSelected ? "text-cyan-600" : "text-gray-900"}`}>
+                  +{withoutDepositAmount.toLocaleString()} ₸
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Price calculation Bento Card */}
         {calculation && (
@@ -656,13 +802,27 @@ export default function BookingForm({
               </div>
             )}
             
+            {!withDepositSelected && withoutDepositAmount > 0 && (
+              <div className="flex justify-between items-center text-amber-400 text-sm mb-3 font-bold bg-amber-950/50 p-2 rounded-lg">
+                <span>Без депозита</span>
+                <span>+{withoutDepositAmount.toLocaleString()} ₸</span>
+              </div>
+            )}
+
+            {withDepositSelected && deposit > 0 && (
+              <div className="flex justify-between items-center text-gray-400 text-sm mb-3 font-medium">
+                <span>Депозит (возвратный)</span>
+                <span>{deposit.toLocaleString()} ₸</span>
+              </div>
+            )}
+
             <div className="flex justify-between items-end pt-4 border-t border-gray-800">
               <span className="text-gray-400 font-bold uppercase tracking-widest text-xs">
                  {t("total")}
               </span>
               <div className="text-right">
                  <span className="text-2xl font-black text-white">
-                   {calculation.totalPrice.toLocaleString()} ₸
+                   {(calculation.totalPrice + (withDepositSelected ? deposit : withoutDepositAmount)).toLocaleString()} ₸
                  </span>
               </div>
             </div>

@@ -116,6 +116,7 @@ export default async function CarDetailPage({
                 <BookingForm
                   carId={car.id}
                   pricePerDay={car.pricePerDay}
+                  deposit={car.deposit}
                   discounts={discounts}
                   initialDateFrom={searchParams.dateFrom}
                   initialDateTo={searchParams.dateTo}

@@ -9,6 +9,7 @@ interface CarWithModel {
   number: string;
   year: number;
   pricePerDay: number;
+  deposit: number;
   color: string;
   transmission: string;
   status: string;
@@ -131,13 +132,13 @@ export default function CarsList({ cars }: CarsListProps) {
                 {t("price")}
               </th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">
+                Депозит
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500">
                 {t("status")}
               </th>
               <th className="text-left px-4 py-3 font-medium text-gray-500">
                 {t("mileage")}
-              </th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">
-                {t("transmission")}
               </th>
               <th className="text-right px-4 py-3 font-medium text-gray-500">
                 {t("actions")}
@@ -183,12 +184,10 @@ export default function CarsList({ cars }: CarsListProps) {
                 </td>
                 <td className="px-4 py-3 text-gray-600">{car.year}</td>
                 <td className="px-4 py-3 text-gray-600">{car.pricePerDay.toLocaleString()} ₸</td>
+                <td className="px-4 py-3 text-gray-600">{car.deposit > 0 ? `${car.deposit.toLocaleString()} ₸` : "—"}</td>
                 <td className="px-4 py-3">{statusBadge(car)}</td>
                 <td className="px-4 py-3 text-gray-600">
                   {car.totalDistance.toLocaleString()} km
-                </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {car.transmission === "AUTOMATIC" ? "AKPP" : "MKPP"}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">

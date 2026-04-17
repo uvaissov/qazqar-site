@@ -154,7 +154,7 @@ async function syncActiveBookings() {
       requestId: { not: null },
       status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
     },
-    select: { id: true, requestId: true, status: true },
+    select: { id: true, requestId: true, status: true, depositAmount: true },
   });
 
   if (activeBookings.length === 0) return;
@@ -198,7 +198,25 @@ async function syncActiveBookings() {
         }
       }
 
-      if (newStatus !== booking.status || documents) {
+      // Sync deposits from CRM (if not yet stored locally)
+      let depositAmount: number | undefined;
+      let depositLabel: string | undefined;
+      let withDeposit: boolean | undefined;
+      if (booking.depositAmount == null) {
+        try {
+          const deposits = await yumeApi.getDeposits(booking.requestId!);
+          if (deposits.length > 0) {
+            const dep = deposits[0];
+            depositAmount = dep.amount ? Math.round(parseFloat(dep.amount)) : undefined;
+            depositLabel = dep.deposit || undefined;
+            withDeposit = !dep.deposit?.toLowerCase().includes("без депозит");
+          }
+        } catch {
+          // CRM unavailable — skip deposit sync
+        }
+      }
+
+      if (newStatus !== booking.status || documents || depositAmount != null) {
         let cancellationReason: string | undefined;
 
         if (newStatus === "CANCELLED") {
@@ -223,6 +241,7 @@ async function syncActiveBookings() {
             }),
             ...(cancellationReason && { cancellationReason }),
             ...(documents && { documents }),
+            ...(depositAmount != null && { depositAmount, depositLabel, withDeposit }),
           },
         });
 

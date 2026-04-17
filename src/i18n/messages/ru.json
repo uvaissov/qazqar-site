@@ -102,7 +102,11 @@
     "cancelLogin": "Отмена",
     "loginError": "Неверный пароль",
     "verifying": "Проверяем...",
-    "accountFoundInline": "Эта почта уже зарегистрирована. Войдите для продолжения:"
+    "accountFoundInline": "Эта почта уже зарегистрирована. Войдите для продолжения:",
+    "loginRequired": "Для отправки заявки необходимо авторизоваться",
+    "pickupAddress": "Адрес подачи",
+    "returnAddress": "Адрес возврата",
+    "selectAddress": "Выберите адрес"
   },
   "catalogPage": {
     "title": "Каталог автомобилей",
@@ -259,6 +263,7 @@
     "faq": "FAQ",
     "reviews": "Отзывы",
     "discounts": "Скидки",
+    "surcharges": "Надбавки",
     "media": "Медиа",
     "totalCars": "Всего автомобилей",
     "availableCars": "Доступные",
@@ -352,6 +357,10 @@
     "rating": "Рейтинг",
     "discounts": "Скидки",
     "addDiscount": "Добавить скидку",
+    "surcharges": "Надбавки без залога",
+    "surchargesDescription": "Надбавка к стоимости аренды при выборе варианта без залога",
+    "addSurcharge": "Добавить надбавку",
+    "amount": "Сумма",
     "minDays": "Мин. дней",
     "maxDays": "Макс. дней",
     "percent": "Процент",

@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       slug,
       descriptionRu,
       descriptionKz,
+      deposit,
     } = body;
 
     if (!modelId || !number || !year || !color || !slug) {
@@ -93,6 +94,7 @@ export async function POST(request: Request) {
         hasAC: hasAC ?? true,
         status: status || "AVAILABLE",
         slug,
+        deposit: Number(deposit) || 0,
         descriptionRu: descriptionRu || null,
         descriptionKz: descriptionKz || null,
       },

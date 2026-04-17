@@ -403,6 +403,47 @@ export const openApiSpec = {
         },
       },
     },
+    "/api/catalog/grouped": {
+      get: {
+        tags: ["Catalog"],
+        summary: "Сгруппированный каталог (как на сайте)",
+        description: "Группирует машины по модели + год + цвет + цена. Возвращает представителя группы с полями `availableCount` и `totalCount`. Сортировка: свободные первыми.",
+        parameters: [
+          { name: "brand", in: "query", schema: { type: "string" }, description: "Slug марки" },
+          { name: "transmission", in: "query", schema: { type: "string", enum: ["AUTOMATIC", "MANUAL"] } },
+          { name: "priceMin", in: "query", schema: { type: "integer" } },
+          { name: "priceMax", in: "query", schema: { type: "integer" } },
+          { name: "dateFrom", in: "query", schema: { type: "string", format: "date" }, description: "YYYY-MM-DD" },
+          { name: "dateTo", in: "query", schema: { type: "string", format: "date" }, description: "YYYY-MM-DD" },
+        ],
+        responses: {
+          200: {
+            description: "Массив групп автомобилей",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: {
+                    allOf: [
+                      { $ref: "#/components/schemas/Car" },
+                      {
+                        type: "object",
+                        properties: {
+                          availableCount: { type: "integer", description: "Кол-во свободных в группе" },
+                          totalCount: { type: "integer", description: "Всего в группе" },
+                          availableFrom: { type: "string", format: "date-time", nullable: true },
+                          nextBookingAt: { type: "string", format: "date-time", nullable: true },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/catalog/brands": {
       get: {
         tags: ["Catalog"],

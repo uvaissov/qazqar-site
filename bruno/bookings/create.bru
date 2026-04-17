@@ -10,15 +10,33 @@ post {
   auth: none
 }
 
+headers {
+  Cookie: access_token={{accessToken}}
+}
+
 body:json {
   {
     "carId": "{{carId}}",
-    "customerName": "Иван Иванов",
+    "customerName": "Алмас Сейткали",
     "customerPhone": "+77001234567",
-    "customerEmail": "user@example.com",
-    "startDate": "2026-04-20 10:00",
-    "endDate": "2026-04-25 10:00",
-    "comment": "Тест",
-    "isResident": true
+    "startDate": "2026-05-01 10:00",
+    "endDate": "2026-05-05 10:00",
+    "comment": "Нужен детский стул"
   }
+}
+
+docs {
+  # Создание заявки на аренду
+
+  Требует авторизации — передавать cookie access_token (сохраняется после логина).
+
+  ## Обязательные поля
+  - `carId` — ID автомобиля из каталога
+  - `customerName` — ФИО клиента
+  - `customerPhone` — телефон в формате +7XXXXXXXXXX
+  - `startDate` — начало аренды "YYYY-MM-DD HH:MM" (по Астане)
+  - `endDate` — конец аренды "YYYY-MM-DD HH:MM"
+
+  ## Опциональные поля
+  - `comment` — произвольный комментарий
 }

@@ -1,7 +1,6 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { yumeApi } from "@/lib/yume/api";
-import type { YumeClient } from "@/lib/yume/api";
+import { findClientCandidates } from "@/lib/yume/find-clients";
 import { NextResponse } from "next/server";
 
 // GET — search CRM clients matching this user (by IIN and phone)
@@ -26,29 +25,15 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const candidates = new Map<number, YumeClient>();
-
-    // Search by email
-    if (user.email) {
-      const byEmail = await yumeApi.searchClients(user.email);
-      for (const c of byEmail) candidates.set(c.id, c);
-    }
-
-    // Search by phone
-    if (user.phone) {
-      const byPhone = await yumeApi.searchClients(user.phone);
-      for (const c of byPhone) candidates.set(c.id, c);
-    }
-
-    // Search by IIN
-    if (user.iin) {
-      const byIin = await yumeApi.searchClients(user.iin);
-      for (const c of byIin) candidates.set(c.id, c);
-    }
+    const candidates = await findClientCandidates({
+      iin: user.iin,
+      email: user.email,
+      phone: user.phone,
+    });
 
     return NextResponse.json({
       currentClientId: user.clientId,
-      candidates: [...candidates.values()],
+      candidates,
     });
   } catch (error) {
     console.error("Search CRM clients error:", error);
@@ -79,12 +64,14 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    const newClientId = clientId ? Number(clientId) : null;
+
     await prisma.user.update({
       where: { id },
-      data: { clientId: clientId ? Number(clientId) : null },
+      data: { clientId: newClientId },
     });
 
-    return NextResponse.json({ success: true, clientId });
+    return NextResponse.json({ success: true, clientId: newClientId });
   } catch (error) {
     console.error("Link CRM error:", error);
     return NextResponse.json(

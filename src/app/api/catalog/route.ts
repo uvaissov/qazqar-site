@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { fuelTypeLabel, transmissionLabel } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -77,7 +78,9 @@ export async function GET(request: NextRequest) {
       year: car.year,
       color: car.color,
       transmission: car.transmission,
+      transmissionLabel: transmissionLabel(car.transmission),
       fuelType: car.fuelType,
+      fuelTypeLabel: fuelTypeLabel(car.fuelType),
       seats: car.seats,
       hasAC: car.hasAC,
       pricePerDay: car.pricePerDay,
