@@ -116,11 +116,21 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 
 **Канонический паттерн** (см. `/api/admin/users/[id]/link-crm` GET и `/api/auth/register`):
 
+Используй helper `findClientCandidates` из `src/lib/yume/find-clients.ts`:
+
+```typescript
+import { findClientCandidates } from "@/lib/yume/find-clients";
+
+const candidates = await findClientCandidates({ iin, email, phone });
+```
+
+Внутри helper'а порядок — **ИИН → email → телефон** (ИИН самый надёжный), дедупликация по `id`:
+
 ```typescript
 const candidates = new Map<number, YumeClient>();
+if (iin)   for (const c of await yumeApi.searchClients(iin))   candidates.set(c.id, c);
 if (email) for (const c of await yumeApi.searchClients(email)) candidates.set(c.id, c);
 if (phone) for (const c of await yumeApi.searchClients(phone)) candidates.set(c.id, c);
-if (iin)   for (const c of await yumeApi.searchClients(iin))   candidates.set(c.id, c);
 ```
 
 Дедупликация по `id` через Map. Если ничего не нашлось — создаём через `createClient()`.

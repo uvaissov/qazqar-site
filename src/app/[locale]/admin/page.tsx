@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 async function getStats() {
   const [
@@ -177,6 +178,9 @@ export default async function AdminDashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Live queues with toast notifications */}
+      <AdminDashboard />
 
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

@@ -91,6 +91,31 @@ export async function syncUserBookings(userId: string): Promise<number> {
       continue;
     }
 
+    // Local RETURN_PENDING always waits for explicit manager approval in CRM
+    // (inventorization.checked = true). Do NOT fall through to the upsert below
+    // even if CRM status reports "completed" — manager may still reject the return.
+    // Local RETURN_PENDING waits for CRM request to transition to "completed"
+    // (manager finalises the rental in Yume after reviewing return photos).
+    // Yume auto-sets inventorization.checked=true on API-created records, so
+    // it cannot be used as an approval signal — we track request.status_color.
+    if (existing?.status === "RETURN_PENDING") {
+      if (status === "COMPLETED") {
+        await prisma.booking.update({
+          where: { id: existing.id },
+          data: { status: "COMPLETED" },
+        });
+        synced++;
+        console.log(
+          `[SyncBookings] CRM #${req.id}: status_color=${req.status_color} → COMPLETED`
+        );
+      } else {
+        console.log(
+          `[SyncBookings] CRM #${req.id}: RETURN_PENDING held (crmStatus=${req.status_color})`
+        );
+      }
+      continue;
+    }
+
     // Fetch cancellation reason only on transition to CANCELLED (or first sync of an already-cancelled request)
     const becameCancelled =
       status === "CANCELLED" && existing?.status !== "CANCELLED";

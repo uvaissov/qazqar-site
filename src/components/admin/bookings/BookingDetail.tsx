@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
 
+const CRM_BASE_URL = "https://qazqar.yume.cloud/orders";
+
 interface BookingWithCar {
   id: string;
+  requestId: number | null;
   customerName: string;
   customerPhone: string;
   startDate: string;
@@ -40,28 +41,22 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
   CONFIRMED: "bg-blue-100 text-blue-700",
   ACTIVE: "bg-green-100 text-green-700",
+  RETURN_PENDING: "bg-cyan-100 text-cyan-700",
   COMPLETED: "bg-gray-100 text-gray-700",
   CANCELLED: "bg-red-100 text-red-700",
-};
-
-type StatusAction = {
-  label: string;
-  targetStatus: string;
-  style: string;
 };
 
 export default function BookingDetail({ booking }: BookingDetailProps) {
   const t = useTranslations("adminBookings");
   const locale = useLocale();
   const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
 
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       PENDING: t("pending"),
       CONFIRMED: t("confirmed"),
       ACTIVE: t("active"),
+      RETURN_PENDING: t("returnPending"),
       COMPLETED: t("completed"),
       CANCELLED: t("cancelled"),
     };
@@ -100,69 +95,8 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
     return booking.totalPrice;
   };
 
-  const getStatusActions = (): StatusAction[] => {
-    switch (booking.status) {
-      case "PENDING":
-        return [
-          {
-            label: t("confirm"),
-            targetStatus: "CONFIRMED",
-            style: "bg-blue-500 hover:bg-blue-600 text-white",
-          },
-          {
-            label: t("cancel"),
-            targetStatus: "CANCELLED",
-            style: "bg-red-500 hover:bg-red-600 text-white",
-          },
-        ];
-      case "CONFIRMED":
-        return [
-          {
-            label: t("activate"),
-            targetStatus: "ACTIVE",
-            style: "bg-green-500 hover:bg-green-600 text-white",
-          },
-          {
-            label: t("cancel"),
-            targetStatus: "CANCELLED",
-            style: "bg-red-500 hover:bg-red-600 text-white",
-          },
-        ];
-      case "ACTIVE":
-        return [
-          {
-            label: t("complete"),
-            targetStatus: "COMPLETED",
-            style: "bg-gray-600 hover:bg-gray-700 text-white",
-          },
-        ];
-      default:
-        return [];
-    }
-  };
-
-  const handleStatusChange = async (targetStatus: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/bookings/${booking.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: targetStatus }),
-      });
-
-      if (res.ok) {
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Status change failed:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const days = getDaysCount();
   const basePrice = getBasePrice();
-  const actions = getStatusActions();
 
   return (
     <div>
@@ -176,18 +110,44 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-gray-900">
             {t("bookingInfo")}
           </h2>
-          <span
-            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              STATUS_BADGE_STYLES[booking.status] ||
-              "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {statusLabel(booking.status)}
-          </span>
+          <div className="flex items-center gap-3">
+            {booking.requestId != null && (
+              <a
+                href={`${CRM_BASE_URL}/${booking.requestId}/all`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors"
+                title="Открыть в Yume CRM"
+              >
+                CRM #{booking.requestId}
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-7.5 3L21 3m0 0h-5.25M21 3v5.25"
+                  />
+                </svg>
+              </a>
+            )}
+            <span
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                STATUS_BADGE_STYLES[booking.status] ||
+                "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {statusLabel(booking.status)}
+            </span>
+          </div>
         </div>
 
         {/* Body */}
@@ -297,21 +257,6 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
           </div>
         </div>
 
-        {/* Actions */}
-        {actions.length > 0 && (
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-            {actions.map((action) => (
-              <button
-                key={action.targetStatus}
-                onClick={() => handleStatusChange(action.targetStatus)}
-                disabled={loading}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${action.style}`}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

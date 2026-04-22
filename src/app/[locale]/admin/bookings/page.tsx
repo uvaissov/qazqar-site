@@ -20,26 +20,36 @@ export default async function AdminBookingsPage({
 
   const where = statusFilter ? { status: statusFilter } : {};
 
-  const [bookings, allCount, pendingCount, confirmedCount, activeCount, completedCount, cancelledCount] =
-    await Promise.all([
-      prisma.booking.findMany({
-        where,
-        include: { car: { include: { model: { include: { brand: true } } } } },
-        orderBy: { createdAt: "desc" },
-      }),
-      prisma.booking.count(),
-      prisma.booking.count({ where: { status: "PENDING" } }),
-      prisma.booking.count({ where: { status: "CONFIRMED" } }),
-      prisma.booking.count({ where: { status: "ACTIVE" } }),
-      prisma.booking.count({ where: { status: "COMPLETED" } }),
-      prisma.booking.count({ where: { status: "CANCELLED" } }),
-    ]);
+  const [
+    bookings,
+    allCount,
+    pendingCount,
+    confirmedCount,
+    activeCount,
+    returnPendingCount,
+    completedCount,
+    cancelledCount,
+  ] = await Promise.all([
+    prisma.booking.findMany({
+      where,
+      include: { car: { include: { model: { include: { brand: true } } } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.booking.count(),
+    prisma.booking.count({ where: { status: "PENDING" } }),
+    prisma.booking.count({ where: { status: "CONFIRMED" } }),
+    prisma.booking.count({ where: { status: "ACTIVE" } }),
+    prisma.booking.count({ where: { status: "RETURN_PENDING" } }),
+    prisma.booking.count({ where: { status: "COMPLETED" } }),
+    prisma.booking.count({ where: { status: "CANCELLED" } }),
+  ]);
 
   const counts = {
     all: allCount,
     PENDING: pendingCount,
     CONFIRMED: confirmedCount,
     ACTIVE: activeCount,
+    RETURN_PENDING: returnPendingCount,
     COMPLETED: completedCount,
     CANCELLED: cancelledCount,
   };

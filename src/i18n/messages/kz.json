@@ -400,6 +400,7 @@
     "pending": "Күтудегі",
     "confirmed": "Расталған",
     "active": "Белсенді",
+    "returnPending": "Тексеруде",
     "completed": "Аяқталған",
     "cancelled": "Бас тартылған",
     "client": "Клиент",

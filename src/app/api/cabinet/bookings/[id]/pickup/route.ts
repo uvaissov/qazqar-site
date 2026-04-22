@@ -4,9 +4,9 @@ import { uploadFile } from "@/lib/minio";
 import { yumeApi } from "@/lib/yume/api";
 import { NextRequest, NextResponse } from "next/server";
 
-const MAX_MANDATORY_PHOTOS = 5;
+const MAX_MANDATORY_PHOTOS = 4;
 const MAX_DAMAGE_PHOTOS = 6;
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_COMMENT_LENGTH = 512;
 
 const STATE_OK = Number(process.env.YUME_INVENTORIZATION_STATE_OK || 1);
@@ -53,19 +53,15 @@ export async function POST(
     }
 
     const mandatoryErr = validatePhotos("mandatory", photos, MAX_MANDATORY_PHOTOS);
-    if (mandatoryErr) {
-      return NextResponse.json({ error: mandatoryErr }, { status: 400 });
-    }
+    if (mandatoryErr) return NextResponse.json({ error: mandatoryErr }, { status: 400 });
     const damageErr = validatePhotos("damage", damagePhotos, MAX_DAMAGE_PHOTOS);
-    if (damageErr) {
-      return NextResponse.json({ error: damageErr }, { status: 400 });
-    }
+    if (damageErr) return NextResponse.json({ error: damageErr }, { status: 400 });
 
     const booking = await prisma.booking.findUnique({
       where: { id },
       include: {
         user: { select: { clientId: true } },
-        car: { select: { inventoryId: true } },
+        car: { select: { inventoryId: true, hasRemote: true } },
       },
     });
     const currentUser = await prisma.user.findUnique({
@@ -79,10 +75,17 @@ export async function POST(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (booking.status !== "ACTIVE") {
+    if (booking.status !== "CONFIRMED") {
       return NextResponse.json(
-        { error: "Only active bookings can be closed" },
+        { error: "Only confirmed bookings can be picked up" },
         { status: 400 }
+      );
+    }
+
+    if (!booking.car.hasRemote) {
+      return NextResponse.json(
+        { error: "Car does not support self-pickup" },
+        { status: 403 }
       );
     }
 
@@ -100,7 +103,6 @@ export async function POST(
       );
     }
 
-    // Read each file once — used for MinIO + Yume.
     type Prepared = { buffer: Buffer; name: string; type: string; isDamage: boolean };
     const prepared: Prepared[] = [];
     for (const p of photos) {
@@ -120,24 +122,20 @@ export async function POST(
       });
     }
 
-    // 1. Archive in MinIO (non-CRM backup)
     const uploadedPaths: string[] = [];
     const timestamp = Date.now();
     for (const p of prepared) {
       const sanitizedName = p.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const fileName = `bookings/${id}/${timestamp}-${sanitizedName}`;
+      const fileName = `bookings/${id}/pickup/${timestamp}-${sanitizedName}`;
       await uploadFile(p.buffer, fileName, p.type);
       uploadedPaths.push(fileName);
     }
 
-    // Yume requires object_id on attachment upload, so we:
-    //   (1) create an empty inventorization first to obtain its id
-    //   (2) upload each photo with object_id=inventorization.id + content_type=inventorization
     try {
       const state = damagePhotos.length > 0 ? STATE_BROKEN : STATE_OK;
       const body = comment
-        ? `Возврат клиентом. ${comment}`.slice(0, MAX_COMMENT_LENGTH)
-        : "Возврат клиентом через мобильное приложение";
+        ? `Выдача клиентом. ${comment}`.slice(0, MAX_COMMENT_LENGTH)
+        : "Выдача клиентом через мобильное приложение";
 
       const inventorization = await yumeApi.createInventorization({
         request: booking.requestId,
@@ -154,8 +152,10 @@ export async function POST(
           { contentType: "inventorization", objectId: inventorization.id }
         );
       }
+
+      await yumeApi.startRental(booking.requestId, booking.car.inventoryId);
     } catch (err) {
-      console.error("[BookingClose] CRM inventorization failed:", err);
+      console.error("[BookingPickup] CRM inventorization failed:", err);
       return NextResponse.json(
         {
           error:
@@ -165,18 +165,17 @@ export async function POST(
       );
     }
 
-    // 4. Move booking to RETURN_PENDING (sync will promote to COMPLETED after manager approval)
     const updatedBooking = await prisma.booking.update({
       where: { id },
       data: {
-        status: "RETURN_PENDING",
-        documents: uploadedPaths,
+        status: "ACTIVE",
+        pickupDocuments: uploadedPaths,
         ...(comment && { comment }),
       },
       select: {
         id: true,
         status: true,
-        documents: true,
+        pickupDocuments: true,
       },
     });
 
@@ -185,7 +184,7 @@ export async function POST(
       booking: updatedBooking,
     });
   } catch (err) {
-    console.error("[BookingClose] Error:", err);
+    console.error("[BookingPickup] Error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

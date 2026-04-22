@@ -291,6 +291,19 @@ class YumeApi {
     );
   }
 
+  /** Start rental (hand over car to client) via action endpoint */
+  async startRental(requestId: number, inventoryId: number): Promise<void> {
+    await this.request<unknown>(
+      "POST",
+      `/v1/crm/requests/${requestId}/action/`,
+      {
+        action: 1,
+        order_inventories: [inventoryId],
+        status: 2,
+      }
+    );
+  }
+
   /** Cancel a request via action endpoint */
   async cancelRequest(requestId: number): Promise<void> {
     await this.request<unknown>(
@@ -316,27 +329,55 @@ class YumeApi {
     );
   }
 
-  // Deposits
-  async addDeposit(requestId: number, data: {
-    deposit: string;
-    type: number;
-    status: number;
-    amount?: string;
-    payment_type?: string;
+  // Services (используется для депозита и надбавки без депозита)
+  // service=15 — Депозит, service=5 — Доплата без депозита
+  async addRequestService(data: {
+    request: number;
+    service: number;
+    tarif_price: string;
+    start_at: string;
+    end_at: string;
+    info?: string;
+    tarif?: number | null;
+    tarif_duration?: number;
   }): Promise<{ id: number }> {
     return this.request<{ id: number }>(
       "POST",
-      `/v1/crm/requests/${requestId}/deposits/`,
-      data
+      `/v1/crm/requests/services/`,
+      {
+        tarif: null,
+        tarif_duration: 0,
+        info: "",
+        ...data,
+      }
     );
   }
 
-  async getDeposits(requestId: number): Promise<{ id: number; deposit: string; type: number; status: number; amount: string | null }[]> {
-    const data = await this.request<{ results: { id: number; deposit: string; type: number; status: number; amount: string | null }[] }>(
+  async getRequestServices(requestId: number): Promise<{
+    id: number;
+    request: number;
+    service: number;
+    tarif_price: string | null;
+    tarif_duration: number | null;
+    info: string | null;
+    start_at: string | null;
+    end_at: string | null;
+  }[]> {
+    const data = await this.request<{ results?: unknown[] } | unknown[]>(
       "GET",
-      `/v1/crm/requests/${requestId}/deposits/`
+      `/v1/crm/requests/services/?request=${requestId}`
     );
-    return data.results ?? [];
+    const list = Array.isArray(data) ? data : (data.results ?? []);
+    return list as {
+      id: number;
+      request: number;
+      service: number;
+      tarif_price: string | null;
+      tarif_duration: number | null;
+      info: string | null;
+      start_at: string | null;
+      end_at: string | null;
+    }[];
   }
 
   // Documents
@@ -385,6 +426,112 @@ class YumeApi {
       page++;
     }
     return all;
+  }
+
+  // --- Inventorizations (car return acceptance) ---
+
+  private async requestMultipart<T>(
+    method: string,
+    path: string,
+    form: FormData
+  ): Promise<T> {
+    const doFetch = async () => {
+      if (!this.tokens || Date.now() >= this.tokens.expiresAt) {
+        await this.login();
+      }
+      return fetch(`${YUME_API_URL}${path}`, {
+        method,
+        headers: {
+          Origin: YUME_ORIGIN,
+          Authorization: `Bearer ${this.tokens!.access}`,
+        },
+        body: form,
+      });
+    };
+
+    let res = await doFetch();
+    if (res.status === 401 && this.tokens) {
+      await this.refreshToken();
+      res = await doFetch();
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Yume API ${method} ${path} failed: ${res.status} ${text}`);
+    }
+
+    return res.json() as Promise<T>;
+  }
+
+  /**
+   * Upload a single image to Yume attachments.
+   * Returns the attachment ID which can be passed into
+   * `createInventorization({ images: [...] })`.
+   */
+  async uploadAttachmentImage(
+    file: Buffer,
+    filename: string,
+    mime: string,
+    opts?: { contentType?: string; objectId?: number }
+  ): Promise<YumeAttachmentImage> {
+    const form = new FormData();
+    const blob = new Blob([new Uint8Array(file)], { type: mime });
+    form.append("image", blob, filename);
+    if (opts?.contentType) form.append("content_type", opts.contentType);
+    if (opts?.objectId != null) form.append("object_id", String(opts.objectId));
+    return this.requestMultipart<YumeAttachmentImage>(
+      "POST",
+      "/v1/attachments/images/",
+      form
+    );
+  }
+
+  async getInventorizationImages(
+    objectIds: number[]
+  ): Promise<YumeAttachmentImage[]> {
+    if (!objectIds.length) return [];
+    const ids = objectIds.join(",");
+    return this.request<YumeAttachmentImage[]>(
+      "GET",
+      `/v1/attachments/images/?content_type=inventorization&object_id__in=${ids}`
+    );
+  }
+
+  /**
+   * Create a return-acceptance inventorization in CRM.
+   * `state` is the CRM state code (1 — исправен, 2 — сломан in this tenant).
+   * `images` must be pre-uploaded attachment IDs from `uploadAttachmentImage()`.
+   */
+  async createInventorization(input: {
+    request: number;
+    inventory: number;
+    state: number;
+    body: string;
+    images?: number[];
+    extra?: unknown;
+  }): Promise<YumeInventorizationCreated> {
+    return this.request<YumeInventorizationCreated>(
+      "POST",
+      "/v1/crm/inventorizations/",
+      {
+        request: input.request,
+        inventory: input.inventory,
+        state: input.state,
+        body: input.body.slice(0, 512),
+        ...(input.images?.length ? { images: input.images } : {}),
+        ...(input.extra != null ? { extra: input.extra } : {}),
+      }
+    );
+  }
+
+  async listInventorizationsForRequest(
+    requestId: number
+  ): Promise<YumeInventorizationDetail[]> {
+    const res = await this.request<YumeListResponse<YumeInventorizationDetail>>(
+      "GET",
+      `/v1/crm/inventorizations/?request=${requestId}&pageSize=100`
+    );
+    return res.results;
   }
 }
 
@@ -565,6 +712,43 @@ export type YumeDocument = {
   files: YumeDocumentFile[];
   signs: YumeDocumentSign[];
   created_at: string;
+};
+
+export type YumeAttachmentImage = {
+  id: number;
+  image: string;
+  content_type?: string | null;
+  object_id?: number | null;
+  created_at?: string;
+};
+
+export type YumeInventorizationCreated = {
+  id: number;
+  request: number | null;
+  inventory: number;
+  state: number;
+  body: string;
+  created_by?: number;
+};
+
+export type YumeInventorizationDetail = {
+  id: number;
+  created_at: string;
+  request: number | null;
+  request_status: number;
+  request_inventory: number | null;
+  created_by: number;
+  inventory: {
+    id: number;
+    name: string;
+    unique_id: string | null;
+    image: string | null;
+  };
+  state: number;
+  body: string;
+  checked: boolean;
+  inventory_status: number;
+  prev: number;
 };
 
 // Singleton

@@ -31,6 +31,8 @@ interface CarData {
   fuelType: string;
   seats: number;
   hasAC: boolean;
+  hasRemote: boolean;
+  remotePhone: string | null;
   deposit: number;
   status: string;
   photos: { photo: { url: string } }[];
@@ -86,6 +88,8 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
   const [fuelType, setFuelType] = useState(car?.fuelType || "AI92");
   const [seats, setSeats] = useState(car?.seats?.toString() || "5");
   const [hasAC, setHasAC] = useState(car?.hasAC ?? true);
+  const [hasRemote, setHasRemote] = useState(car?.hasRemote ?? false);
+  const [remotePhone, setRemotePhone] = useState(car?.remotePhone ?? "");
   const [deposit, setDeposit] = useState(car?.deposit?.toString() || "0");
   const [status, setStatus] = useState(car?.status || "AVAILABLE");
   const [images, setImages] = useState<string[]>(car?.photos?.map(p => p.photo.url) || []);
@@ -130,6 +134,15 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
     setError("");
     setSaving(true);
 
+    if (hasRemote) {
+      const phoneOk = /^\+7\d{10}$/.test(remotePhone.trim());
+      if (!phoneOk) {
+        setError("Номер SIM пульта должен быть в формате +7XXXXXXXXXX");
+        setSaving(false);
+        return;
+      }
+    }
+
     const body = {
       modelId,
       inventoryId: Number(inventoryId),
@@ -143,6 +156,8 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
       fuelType,
       seats: Number(seats),
       hasAC,
+      hasRemote,
+      remotePhone: hasRemote ? remotePhone.trim() : null,
       deposit: Number(deposit) || 0,
       status,
       images,
@@ -364,6 +379,39 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               {t("ac")}
             </label>
           </div>
+
+          {/* Has remote (SMS) */}
+          <div className="flex items-center gap-2 pt-6">
+            <input
+              type="checkbox"
+              id="hasRemote"
+              checked={hasRemote}
+              onChange={(e) => setHasRemote(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-cyan-500 focus:ring-cyan-500"
+            />
+            <label
+              htmlFor="hasRemote"
+              className="text-sm font-medium text-gray-700"
+            >
+              Имеет пульт дистанционного управления (SMS)
+            </label>
+          </div>
+
+          {/* Remote SIM phone */}
+          {hasRemote && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Номер SIM пульта
+              </label>
+              <input
+                type="text"
+                value={remotePhone}
+                onChange={(e) => setRemotePhone(e.target.value)}
+                placeholder="+77001234567"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+              />
+            </div>
+          )}
         </div>
       </div>
 

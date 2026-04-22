@@ -4,6 +4,19 @@ import { fuelTypeLabel, transmissionLabel } from "@/lib/utils";
 import { syncUserBookings } from "@/lib/yume/sync-bookings";
 import { NextResponse } from "next/server";
 
+const MINIO_PUBLIC_URL = process.env.NEXT_PUBLIC_MINIO_URL || "";
+
+// `documents` на Booking принимает разные формы: для COMPLETED из sync — это массив
+// CRM-документов (object[]), для RETURN_PENDING/COMPLETED из мобилки — массив MinIO-путей.
+// Возвращаем приложению только второй случай как полный URL.
+function extractReturnReportPhotos(documents: unknown): string[] | null {
+  if (!Array.isArray(documents) || documents.length === 0) return null;
+  if (documents.every((x) => typeof x === "string")) {
+    return (documents as string[]).map((path) => `${MINIO_PUBLIC_URL}/${path}`);
+  }
+  return null;
+}
+
 export async function GET() {
   const session = await getSession();
   if (!session) {
@@ -40,6 +53,14 @@ export async function GET() {
   // Transform car to MarkDto-compatible format for Flutter app
   const result = bookings.map((b) => ({
     ...b,
+    returnReport:
+      b.status === "RETURN_PENDING" || b.status === "COMPLETED"
+        ? (() => {
+            const photos = extractReturnReportPhotos(b.documents);
+            if (!photos) return null;
+            return { photos, comment: b.comment };
+          })()
+        : null,
     car: b.car ? {
       id: b.car.id,
       slug: b.car.slug,
@@ -57,6 +78,7 @@ export async function GET() {
       fuelTypeLabel: fuelTypeLabel(b.car.fuelType),
       seats: b.car.seats,
       hasAC: b.car.hasAC,
+      hasRemote: b.car.hasRemote,
       pricePerDay: b.car.pricePerDay,
       deposit: b.car.deposit,
       status: b.car.status,

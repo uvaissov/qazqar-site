@@ -198,18 +198,24 @@ async function syncActiveBookings() {
         }
       }
 
-      // Sync deposits from CRM (if not yet stored locally)
+      // Sync deposit / no-deposit surcharge from CRM services (if not yet stored locally)
+      // service=15 — Депозит, service=5 — Доплата без депозита
       let depositAmount: number | undefined;
       let depositLabel: string | undefined;
       let withDeposit: boolean | undefined;
       if (booking.depositAmount == null) {
         try {
-          const deposits = await yumeApi.getDeposits(booking.requestId!);
-          if (deposits.length > 0) {
-            const dep = deposits[0];
-            depositAmount = dep.amount ? Math.round(parseFloat(dep.amount)) : undefined;
-            depositLabel = dep.deposit || undefined;
-            withDeposit = !dep.deposit?.toLowerCase().includes("без депозит");
+          const services = await yumeApi.getRequestServices(booking.requestId!);
+          const depositSvc = services.find((s) => s.service === 15);
+          const noDepositSvc = services.find((s) => s.service === 5);
+          const svc = noDepositSvc ?? depositSvc;
+          if (svc) {
+            const price = svc.tarif_price ? Math.round(parseFloat(svc.tarif_price)) : 0;
+            depositAmount = price;
+            withDeposit = !noDepositSvc;
+            depositLabel = noDepositSvc
+              ? `Без депозита (надбавка ${price.toLocaleString()} ₸)`
+              : `Депозит ${price.toLocaleString()} ₸`;
           }
         } catch {
           // CRM unavailable — skip deposit sync

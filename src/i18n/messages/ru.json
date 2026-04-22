@@ -400,6 +400,7 @@
     "pending": "Ожидающие",
     "confirmed": "Подтверждённые",
     "active": "Активные",
+    "returnPending": "На проверке",
     "completed": "Завершённые",
     "cancelled": "Отменённые",
     "client": "Клиент",

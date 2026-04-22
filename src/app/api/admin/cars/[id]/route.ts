@@ -59,6 +59,8 @@ export async function PUT(
       fuelType,
       seats,
       hasAC,
+      hasRemote,
+      remotePhone,
       status,
       slug,
       descriptionRu,
@@ -71,6 +73,13 @@ export async function PUT(
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
+      );
+    }
+
+    if (hasRemote && !(remotePhone && /^\+7\d{10}$/.test(String(remotePhone).trim()))) {
+      return NextResponse.json(
+        { error: "remotePhone required (+7XXXXXXXXXX) when hasRemote is true" },
+        { status: 422 }
       );
     }
 
@@ -108,6 +117,8 @@ export async function PUT(
         fuelType: fuelType || "AI92",
         seats: Number(seats) || 5,
         hasAC: hasAC ?? true,
+        hasRemote: Boolean(hasRemote),
+        remotePhone: hasRemote ? String(remotePhone).trim() : null,
         status: status || "AVAILABLE",
         slug,
         deposit: Number(deposit) || 0,

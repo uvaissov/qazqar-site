@@ -97,6 +97,9 @@ export default async function CabinetBookingsPage() {
     status: b.status,
     comment: b.comment,
     cancellationReason: b.cancellationReason,
+    depositAmount: b.depositAmount,
+    depositLabel: b.depositLabel,
+    withDeposit: b.withDeposit,
     documents: docsMap[b.id] || [],
     createdAt: b.createdAt.toISOString(),
   }));

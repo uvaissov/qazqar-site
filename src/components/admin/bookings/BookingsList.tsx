@@ -5,8 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { usePathname } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
 
+const CRM_BASE_URL = "https://qazqar.yume.cloud/orders";
+
 interface BookingWithCar {
   id: string;
+  requestId: number | null;
   customerName: string;
   customerPhone: string;
   startDate: string;
@@ -33,6 +36,7 @@ interface StatusCounts {
   PENDING: number;
   CONFIRMED: number;
   ACTIVE: number;
+  RETURN_PENDING: number;
   COMPLETED: number;
   CANCELLED: number;
 }
@@ -48,6 +52,7 @@ const STATUS_TABS = [
   { key: "pending", value: "PENDING" },
   { key: "confirmed", value: "CONFIRMED" },
   { key: "active", value: "ACTIVE" },
+  { key: "returnPending", value: "RETURN_PENDING" },
   { key: "completed", value: "COMPLETED" },
   { key: "cancelled", value: "CANCELLED" },
 ] as const;
@@ -56,6 +61,7 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
   CONFIRMED: "bg-blue-100 text-blue-700",
   ACTIVE: "bg-green-100 text-green-700",
+  RETURN_PENDING: "bg-cyan-100 text-cyan-700",
   COMPLETED: "bg-gray-100 text-gray-700",
   CANCELLED: "bg-red-100 text-red-700",
 };
@@ -92,6 +98,7 @@ export default function BookingsList({
       PENDING: t("pending"),
       CONFIRMED: t("confirmed"),
       ACTIVE: t("active"),
+      RETURN_PENDING: t("returnPending"),
       COMPLETED: t("completed"),
       CANCELLED: t("cancelled"),
     };
@@ -227,7 +234,31 @@ export default function BookingsList({
                       {formatDate(booking.createdAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end gap-2">
+                        {booking.requestId != null && (
+                          <a
+                            href={`${CRM_BASE_URL}/${booking.requestId}/all`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors"
+                            title="Открыть в Yume CRM"
+                          >
+                            CRM
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={1.5}
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-7.5 3L21 3m0 0h-5.25M21 3v5.25"
+                              />
+                            </svg>
+                          </a>
+                        )}
                         <Link
                           href={`/admin/bookings/${booking.id}`}
                           className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors"

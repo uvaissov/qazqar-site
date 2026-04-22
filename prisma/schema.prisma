@@ -8,20 +8,21 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String?    @unique
-  phone        String?    @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  role         UserRole   @default(CLIENT)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  clientId     Int?
-  iin          String?
-  isResident   Boolean    @default(true)
-  blogPosts    BlogPost[]
-  bookings     Booking[]
+  id             String          @id @default(cuid())
+  email          String?         @unique
+  phone          String?         @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           UserRole        @default(CLIENT)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  clientId       Int?
+  iin            String?
+  isResident     Boolean         @default(true)
+  blogPosts      BlogPost[]
+  bookings       Booking[]
+  remoteCommands RemoteCommand[]
 
   @@map("users")
 }
@@ -71,6 +72,8 @@ model Car {
   totalDistance Int          @default(0)
   vin           String?
   deposit       Int          @default(0)
+  hasRemote     Boolean      @default(false)
+  remotePhone   String?
   bookings      Booking[]
   photos        CarPhoto[]
   model         CarModel     @relation(fields: [modelId], references: [id])
@@ -100,31 +103,33 @@ model CarPhoto {
 }
 
 model Booking {
-  id                 String        @id @default(cuid())
+  id                 String          @id @default(cuid())
   userId             String?
   carId              String
   startDate          DateTime
   endDate            DateTime
   totalPrice         Int
-  discountPercent    Int           @default(0)
-  status             BookingStatus @default(PENDING)
+  discountPercent    Int             @default(0)
+  status             BookingStatus   @default(PENDING)
   customerName       String
   customerPhone      String
   comment            String?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
   cancellationReason String?
   documents          Json?
+  pickupDocuments    Json?
   depositAmount      Int?
   depositLabel       String?
-  withDeposit        Boolean       @default(true)
-  requestId          Int?          @unique
+  withDeposit        Boolean         @default(true)
+  requestId          Int?            @unique
   pickupAddressId    String?
   returnAddressId    String?
-  car                Car           @relation(fields: [carId], references: [id])
-  pickupAddress      Address?      @relation("PickupAddress", fields: [pickupAddressId], references: [id])
-  returnAddress      Address?      @relation("ReturnAddress", fields: [returnAddressId], references: [id])
-  user               User?         @relation(fields: [userId], references: [id])
+  car                Car             @relation(fields: [carId], references: [id])
+  pickupAddress      Address?        @relation("PickupAddress", fields: [pickupAddressId], references: [id])
+  returnAddress      Address?        @relation("ReturnAddress", fields: [returnAddressId], references: [id])
+  user               User?           @relation(fields: [userId], references: [id])
+  remoteCommands     RemoteCommand[]
 
   @@map("bookings")
 }
@@ -253,8 +258,33 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   ACTIVE
+  RETURN_PENDING
   COMPLETED
   CANCELLED
+}
+
+enum RemoteAction {
+  UNLOCK
+  LOCK
+}
+
+model RemoteCommand {
+  id          String       @id @default(cuid())
+  bookingId   String
+  userId      String
+  action      RemoteAction
+  targetPhone String
+  smsText     String
+  providerId  String?
+  ok          Boolean      @default(true)
+  error       String?
+  createdAt   DateTime     @default(now())
+  booking     Booking      @relation(fields: [bookingId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+
+  @@index([bookingId, createdAt])
+  @@index([userId, createdAt])
+  @@map("remote_commands")
 }
 
 enum OtpType {

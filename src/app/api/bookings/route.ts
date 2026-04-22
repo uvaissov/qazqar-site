@@ -178,28 +178,19 @@ export async function POST(request: Request) {
           await yumeApi.addRequestComment(yumeRequest.id, crmComment);
         }
 
-        // Add deposit to CRM request
+        // Add deposit / no-deposit surcharge as service to CRM request
         if (depositAmount > 0) {
           try {
-            if (withDeposit === false) {
-              await yumeApi.addDeposit(yumeRequest.id, {
-                deposit: `Без депозита (надбавка ${noDepositSurcharge.toLocaleString()} ₸)`,
-                type: 1,
-                status: 1,
-                amount: noDepositSurcharge.toString(),
-                payment_type: "3",
-              });
-            } else {
-              await yumeApi.addDeposit(yumeRequest.id, {
-                deposit: `Депозит`,
-                type: 1,
-                status: 1,
-                amount: depositAmount.toString(),
-                payment_type: "3",
-              });
-            }
+            const isNoDeposit = withDeposit === false;
+            await yumeApi.addRequestService({
+              request: yumeRequest.id,
+              service: isNoDeposit ? 5 : 15,
+              tarif_price: (isNoDeposit ? noDepositSurcharge : depositAmount).toString(),
+              start_at: crmStart,
+              end_at: crmEnd,
+            });
           } catch (depositErr) {
-            console.error("[Yume] Failed to add deposit:", depositErr);
+            console.error("[Yume] Failed to add deposit service:", depositErr);
           }
         }
 
