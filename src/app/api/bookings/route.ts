@@ -1,9 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { getSession, signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
-import { yumeApi } from "@/lib/yume/api";
+import { yumeApi, YumeApiError } from "@/lib/yume/api";
+import { BookingStatus } from "@/generated/prisma/enums";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
+
+/** Бросается внутри транзакции при пересечении дат с существующей бронью. */
+class BookingConflictError extends Error {}
 
 export async function POST(request: Request) {
   try {
@@ -36,6 +40,13 @@ export async function POST(request: Request) {
       (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
     );
     if (days <= 0) {
+      return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
+    }
+
+    // Дата начала не должна быть в прошлом (как в catalog/[id]/price)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (start < today) {
       return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
     }
 
@@ -197,36 +208,66 @@ export async function POST(request: Request) {
         requestId = yumeRequest.id;
       } catch (err) {
         const message = (err as Error).message || "";
-        if (message.includes("конфликт") || message.includes("schedule")) {
+        // Конфликт расписания: основной сигнал — HTTP 409 от CRM;
+        // текстовая подстрока оставлена как fallback для иных кодов.
+        const isConflict =
+          (err instanceof YumeApiError && err.status === 409) ||
+          message.includes("конфликт") ||
+          message.includes("schedule");
+        if (isConflict) {
           return NextResponse.json({ error: "DATE_CONFLICT" }, { status: 409 });
         }
         console.error("[Yume] Failed to create request in CRM:", err);
       }
     }
 
-    // Create local booking
-    const booking = await prisma.booking.create({
-      data: {
-        carId,
-        customerName,
-        customerPhone,
-        startDate: start,
-        endDate: end,
-        totalPrice: Math.round(days * car.pricePerDay * (1 - discountPercent / 100)),
-        discountPercent,
-        withDeposit: withDeposit !== false,
-        depositAmount: withDeposit === false ? noDepositSurcharge : depositAmount,
-        depositLabel: depositAmount > 0
-          ? (withDeposit === false ? `Без депозита (надбавка ${noDepositSurcharge.toLocaleString()} ₸)` : `Депозит ${depositAmount.toLocaleString()} ₸`)
-          : null,
-        status: "PENDING",
-        comment: comment || null,
-        userId,
-        requestId,
-        pickupAddressId: pickupAddressId || null,
-        returnAddressId: returnAddressId || null,
-      },
-    });
+    // Create local booking — в транзакции с advisory-блокировкой по авто,
+    // чтобы два параллельных запроса не создали пересекающиеся брони (C4).
+    // hashtext превращает cuid авто в int4-ключ для pg_advisory_xact_lock.
+    let booking;
+    try {
+      booking = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${carId}))`;
+
+        const conflict = await tx.booking.findFirst({
+          where: {
+            carId,
+            status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ACTIVE] },
+            startDate: { lt: end },
+            endDate: { gt: start },
+          },
+        });
+        if (conflict) throw new BookingConflictError();
+
+        return tx.booking.create({
+          data: {
+            carId,
+            customerName,
+            customerPhone,
+            startDate: start,
+            endDate: end,
+            totalPrice: Math.round(days * car.pricePerDay * (1 - discountPercent / 100)),
+            discountPercent,
+            withDeposit: withDeposit !== false,
+            depositAmount: withDeposit === false ? noDepositSurcharge : depositAmount,
+            depositLabel: depositAmount > 0
+              ? (withDeposit === false ? `Без депозита (надбавка ${noDepositSurcharge.toLocaleString()} ₸)` : `Депозит ${depositAmount.toLocaleString()} ₸`)
+              : null,
+            status: "PENDING",
+            comment: comment || null,
+            userId,
+            requestId,
+            pickupAddressId: pickupAddressId || null,
+            returnAddressId: returnAddressId || null,
+          },
+        });
+      });
+    } catch (err) {
+      if (err instanceof BookingConflictError) {
+        return NextResponse.json({ error: "DATES_UNAVAILABLE" }, { status: 409 });
+      }
+      throw err;
+    }
 
     // Set auth cookie if user was created or verified via OTP
     const response = NextResponse.json({
@@ -243,7 +284,11 @@ export async function POST(request: Request) {
           email: user.email!,
           role: user.role,
         });
-        const refreshToken = await signRefreshToken({ userId: user.id });
+        const refreshToken = await signRefreshToken({
+          userId: user.id,
+          email: user.email!,
+          role: user.role,
+        });
         setAuthCookies(response, accessToken, refreshToken);
       }
     }

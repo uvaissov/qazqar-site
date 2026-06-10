@@ -3,9 +3,11 @@ import { cookies } from "next/headers";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "qazqar-secret-key-change-in-production"
-);
+const JWT_SECRET_VALUE = process.env.JWT_SECRET;
+if (!JWT_SECRET_VALUE) {
+  throw new Error("JWT_SECRET env variable is required");
+}
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_VALUE);
 
 export const ACCESS_MAX_AGE = 60 * 60 * 24; // 1 day
 export const REFRESH_MAX_AGE = 60 * 60 * 24 * 180; // 180 days
@@ -16,19 +18,21 @@ export interface JWTPayload {
   role: string;
 }
 
-export interface RefreshPayload {
-  userId: string;
-}
+// Refresh-токен несёт те же claims, что и access (email/role), чтобы middleware
+// мог перевыпустить access-токен, не обращаясь к БД и не доверяя неверифицированному
+// access-токену (см. tryRefreshAccess). Источник истины по роли при /api/auth/refresh
+// — всё равно БД.
+export type RefreshPayload = JWTPayload;
 
 export async function signAccessToken(payload: JWTPayload): Promise<string> {
-  return new SignJWT(payload as unknown as Record<string, unknown>)
+  return new SignJWT({ ...payload, typ: "access" })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("1d")
     .sign(JWT_SECRET);
 }
 
 export async function signRefreshToken(payload: RefreshPayload): Promise<string> {
-  return new SignJWT(payload as unknown as Record<string, unknown>)
+  return new SignJWT({ ...payload, typ: "refresh" })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("180d")
     .sign(JWT_SECRET);
@@ -40,6 +44,7 @@ export const signToken = signAccessToken;
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.typ !== "access") return null;
     return payload as unknown as JWTPayload;
   } catch {
     return null;
@@ -49,6 +54,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 export async function verifyRefreshToken(token: string): Promise<RefreshPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.typ !== "refresh") return null;
     return payload as unknown as RefreshPayload;
   } catch {
     return null;

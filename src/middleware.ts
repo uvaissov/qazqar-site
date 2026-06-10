@@ -5,9 +5,11 @@ import { SignJWT, jwtVerify } from "jose";
 
 const intlMiddleware = createMiddleware(routing);
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "qazqar-secret-key-change-in-production"
-);
+const JWT_SECRET_VALUE = process.env.JWT_SECRET;
+if (!JWT_SECRET_VALUE) {
+  throw new Error("JWT_SECRET env variable is required");
+}
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_VALUE);
 
 const ACCESS_MAX_AGE = 60 * 60 * 24; // 1 day
 
@@ -18,23 +20,18 @@ async function tryRefreshAccess(
   if (!refreshToken) return null;
 
   try {
+    // Роль и email берём ИЗ верифицированного refresh-токена, а не из
+    // неверифицированного access-токена — иначе CLIENT мог бы подделать
+    // access-cookie с role: "ADMIN" и получить перевыпуск админ-токена.
     const { payload: refreshPayload } = await jwtVerify(refreshToken, JWT_SECRET);
-    const userId = refreshPayload.userId as string;
-    if (!userId) return null;
+    if (refreshPayload.typ !== "refresh") return null;
 
-    // Fetch user from DB via internal API is not possible in middleware,
-    // so we decode the expired access token to get email/role without verification
-    const accessToken = request.cookies.get("auth-token")?.value;
-    if (!accessToken) return null;
+    const userId = refreshPayload.userId as string | undefined;
+    const email = refreshPayload.email as string | undefined;
+    const role = refreshPayload.role as string | undefined;
+    if (!userId || !role) return null;
 
-    // Decode without verification to extract claims from expired token
-    const parts = accessToken.split(".");
-    if (parts.length !== 3) return null;
-    const claims = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-
-    if (claims.userId !== userId) return null;
-
-    const newPayload = { userId, email: claims.email, role: claims.role };
+    const newPayload = { userId, email, role, typ: "access" };
     const newAccessToken = await new SignJWT(newPayload)
       .setProtectedHeader({ alg: "HS256" })
       .setExpirationTime("1d")
@@ -61,9 +58,11 @@ export default async function middleware(request: NextRequest) {
     if (accessToken) {
       try {
         const result = await jwtVerify(accessToken, JWT_SECRET);
+        // refresh-токен, подставленный в auth-cookie, не должен работать как access
+        if (result.payload.typ !== "access") throw new Error("not an access token");
         payload = result.payload as Record<string, unknown>;
       } catch {
-        // Access token expired — try refresh
+        // Access token expired (or wrong typ) — try refresh
         const refreshed = await tryRefreshAccess(request);
         if (refreshed) {
           payload = refreshed.payload;

@@ -9,6 +9,18 @@ type TokenPair = {
   expiresAt: number; // timestamp when access token expires
 };
 
+/** Ошибка ответа Yume CRM с HTTP-статусом — позволяет вызывающему коду
+ *  отличать конфликты (409/400) от прочих сбоев без парсинга текста. */
+export class YumeApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number
+  ) {
+    super(message);
+    this.name = "YumeApiError";
+  }
+}
+
 class YumeApi {
   private tokens: TokenPair | null = null;
   private serviceUserId: number | null = null;
@@ -37,8 +49,10 @@ class YumeApi {
       });
 
       if (!retry.ok) {
-        throw new Error(
-          `Yume API ${method} ${path} failed after refresh: ${retry.status}`
+        const text = await retry.text();
+        throw new YumeApiError(
+          `Yume API ${method} ${path} failed after refresh: ${retry.status} ${text}`,
+          retry.status
         );
       }
       return retry.json() as Promise<T>;
@@ -46,7 +60,10 @@ class YumeApi {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`Yume API ${method} ${path} failed: ${res.status} ${text}`);
+      throw new YumeApiError(
+        `Yume API ${method} ${path} failed: ${res.status} ${text}`,
+        res.status
+      );
     }
 
     return res.json() as Promise<T>;

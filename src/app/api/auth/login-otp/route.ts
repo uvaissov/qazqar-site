@@ -36,7 +36,11 @@ export async function POST(request: Request) {
       email: user.email!,
       role: user.role,
     });
-    const refreshToken = await signRefreshToken({ userId: user.id });
+    const refreshToken = await signRefreshToken({
+      userId: user.id,
+      email: user.email!,
+      role: user.role,
+    });
 
     const response = NextResponse.json({
       user: {
