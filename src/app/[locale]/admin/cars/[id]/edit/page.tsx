@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import CarForm from "@/components/admin/cars/CarForm";
+import RemoteCommandsTable from "@/components/admin/sms-log/RemoteCommandsTable";
 
 interface EditCarPageProps {
   params: Promise<{ id: string; locale: string }>;
@@ -10,6 +11,7 @@ interface EditCarPageProps {
 export default async function AdminCarsEditPage({ params }: EditCarPageProps) {
   const { id } = await params;
   const t = await getTranslations("adminCars");
+  const tSms = await getTranslations("adminSmsLog");
 
   const car = await prisma.car.findUnique({
     where: { id },
@@ -35,6 +37,11 @@ export default async function AdminCarsEditPage({ params }: EditCarPageProps) {
         car={JSON.parse(JSON.stringify(car))}
         models={JSON.parse(JSON.stringify(models))}
       />
+
+      <section className="mt-10">
+        <h2 className="text-lg font-bold text-gray-900 mb-4">{tSms("title")}</h2>
+        <RemoteCommandsTable carId={id} />
+      </section>
     </div>
   );
 }

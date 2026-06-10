@@ -284,6 +284,7 @@ model RemoteCommand {
 
   @@index([bookingId, createdAt])
   @@index([userId, createdAt])
+  @@index([createdAt])
   @@map("remote_commands")
 }
 
