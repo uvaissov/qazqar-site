@@ -7,6 +7,11 @@ import { type Locale } from "@/i18n/config";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
 import "../globals.css";
 
+// Приложение динамическое: авторизация + живые данные из CRM-синка. Отключаем
+// статический пререндер (иначе сборка падает на обращении к БД на этапе
+// "Generating static pages"). Применяется каскадом ко всем [locale]-страницам.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {

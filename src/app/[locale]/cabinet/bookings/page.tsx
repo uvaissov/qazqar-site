@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { syncUserBookings } from "@/lib/yume/sync-bookings";
 import { yumeApi } from "@/lib/yume/api";
 import { getTranslations } from "next-intl/server";
@@ -75,7 +76,7 @@ export default async function CabinetBookingsPage() {
         // Save to DB cache (fire-and-forget)
         prisma.booking.update({
           where: { id: b.id },
-          data: { documents: mapped as unknown as Record<string, unknown>[] },
+          data: { documents: mapped as unknown as Prisma.InputJsonValue },
         }).catch(() => {});
       } catch {
         // CRM unavailable — use cached from DB
