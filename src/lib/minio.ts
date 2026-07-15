@@ -24,3 +24,17 @@ export async function uploadFile(
 export async function deleteFile(fileName: string): Promise<void> {
   await minioClient.removeObject(BUCKET_NAME, fileName);
 }
+
+/// Откат уже залитых файлов, когда следующий шаг упал.
+///
+/// Никогда не бросает: вызывается из catch-блоков, и своя ошибка затёрла бы
+/// исходную причину — пользователь получил бы жалобу на MinIO вместо настоящей.
+export async function deleteFilesQuietly(fileNames: string[]): Promise<void> {
+  await Promise.all(
+    fileNames.map((fileName) =>
+      deleteFile(fileName).catch((err) =>
+        console.error(`[MinIO] Cleanup failed for "${fileName}":`, err)
+      )
+    )
+  );
+}

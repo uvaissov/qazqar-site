@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { uploadFile } from "@/lib/minio";
+import { deleteFilesQuietly, uploadFile } from "@/lib/minio";
 import { yumeApi } from "@/lib/yume/api";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -156,6 +156,9 @@ export async function POST(
       await yumeApi.startRental(booking.requestId, booking.car.inventoryId);
     } catch (err) {
       console.error("[BookingPickup] CRM inventorization failed:", err);
+      // Бронь осталась CONFIRMED — клиент будет ретраить, и каждая попытка залила бы
+      // в бакет новый комплект фото под своим timestamp. Убираем за собой.
+      await deleteFilesQuietly(uploadedPaths);
       return NextResponse.json(
         {
           error:
