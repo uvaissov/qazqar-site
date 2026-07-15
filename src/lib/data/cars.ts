@@ -5,6 +5,24 @@ const carInclude = {
   photos: { include: { photo: true }, orderBy: { sortOrder: "asc" as const } },
 };
 
+/// Статусы броней, которые занимают машину на свой период.
+///
+/// Список именно разрешительный, а не «всё кроме CANCELLED»: COMPLETED раньше
+/// попадала под «кроме CANCELLED» и держала авто занятым **после возврата** —
+/// сданная 16-го машина не находилась в поиске с 16-го по 18-е.
+///
+/// RETURN_PENDING блокирует намеренно: клиент сдал фото, но менеджер ещё не
+/// принял авто и может найти повреждения.
+///
+/// Единый источник для всех проверок занятости — /api/catalog и getCars уже
+/// разъезжались в этом списке, и мобилка с сайтом показывали разное.
+export const BLOCKING_BOOKING_STATUSES = [
+  "PENDING",
+  "CONFIRMED",
+  "ACTIVE",
+  "RETURN_PENDING",
+] as const;
+
 // Helper: extract image URLs from car photos relation
 export function getCarImages(car: { photos: { photo: { url: string } }[] }): string[] {
   return car.photos.map((cp) => cp.photo.url);
@@ -50,7 +68,7 @@ export async function getCars(filters?: {
       // No overlapping active bookings
       where.bookings = {
         none: {
-          status: { not: "CANCELLED" },
+          status: { in: [...BLOCKING_BOOKING_STATUSES] },
           startDate: { lt: to },
           endDate: { gt: from },
         },

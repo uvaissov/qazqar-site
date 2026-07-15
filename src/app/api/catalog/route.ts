@@ -1,3 +1,4 @@
+import { BLOCKING_BOOKING_STATUSES } from "@/lib/data/cars";
 import { prisma } from "@/lib/prisma";
 import { fuelTypeLabel, transmissionLabel } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
 
       where.bookings = {
         none: {
-          status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
+          status: { in: [...BLOCKING_BOOKING_STATUSES] },
           startDate: { lt: end },
           endDate: { gt: start },
         },
