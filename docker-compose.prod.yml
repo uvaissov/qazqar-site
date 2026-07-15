@@ -71,11 +71,18 @@ services:
       exit 0;
       "
 
-  # Стейджинг: реального SMTP нет — OTP-письма ловим в mailhog (UI на 127.0.0.1:8025).
+  # Стейджинг: реального SMTP нет — OTP-письма ловим в mailhog.
+  # UI отдаётся наружу через nginx по /mailhog/ — БЕЗ авторизации, т.к. это отладочный
+  # стенд. В ящике лежат OTP-коды, поэтому при переезде на реальный SMTP location
+  # /mailhog/ в nginx надо убрать или закрыть.
+  # MH_UI_WEB_PATH обязателен: без него mailhog отдаёт css/js по абсолютным путям от
+  # корня, и под префиксом /mailhog/ интерфейс ломается.
   mailhog:
     image: mailhog/mailhog:latest
     container_name: qazqar-mailhog
     restart: unless-stopped
+    environment:
+      MH_UI_WEB_PATH: mailhog
     ports:
       - "127.0.0.1:8025:8025"
 
