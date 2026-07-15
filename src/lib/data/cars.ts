@@ -12,6 +12,7 @@ export function getCarImages(car: { photos: { photo: { url: string } }[] }): str
 
 export async function getCars(filters?: {
   brandSlug?: string;
+  modelSlug?: string;
   transmission?: string;
   priceMin?: number;
   priceMax?: number;
@@ -20,8 +21,14 @@ export async function getCars(filters?: {
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {};
-  if (filters?.brandSlug) {
-    where.model = { brand: { slug: filters.brandSlug } };
+  // Марка и модель живут в одном where.model — присваивать его дважды нельзя,
+  // второй фильтр затёр бы первый. Собираем условие по частям.
+  if (filters?.brandSlug || filters?.modelSlug) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model: any = {};
+    if (filters.brandSlug) model.brand = { slug: filters.brandSlug };
+    if (filters.modelSlug) model.slug = filters.modelSlug;
+    where.model = model;
   }
   if (filters?.transmission) {
     where.transmission = filters.transmission;

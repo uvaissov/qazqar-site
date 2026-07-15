@@ -410,6 +410,7 @@ export const openApiSpec = {
         description: "Группирует машины по модели + год + цвет + цена. Возвращает представителя группы с полями `availableCount` и `totalCount`. Сортировка: свободные первыми.",
         parameters: [
           { name: "brand", in: "query", schema: { type: "string" }, description: "Slug марки" },
+          { name: "model", in: "query", schema: { type: "string" }, description: "Slug модели (список — GET /api/catalog/models)" },
           { name: "transmission", in: "query", schema: { type: "string", enum: ["AUTOMATIC", "MANUAL"] } },
           { name: "priceMin", in: "query", schema: { type: "integer" } },
           { name: "priceMax", in: "query", schema: { type: "integer" } },
@@ -450,6 +451,20 @@ export const openApiSpec = {
         summary: "Список марок автомобилей",
         responses: {
           200: { description: "Массив марок" },
+        },
+      },
+    },
+    "/api/catalog/models": {
+      get: {
+        tags: ["Catalog"],
+        summary: "Список моделей для фильтра каталога",
+        description: "По умолчанию только модели, у которых есть машины — иначе фильтр предлагал бы вариант с пустым результатом. Слаг отсюда идёт в параметр `model` у /api/catalog/grouped.",
+        parameters: [
+          { name: "brand", in: "query", schema: { type: "string" }, description: "Сузить до одной марки (slug)" },
+          { name: "all", in: "query", schema: { type: "boolean" }, description: "true — вернуть и модели без машин" },
+        ],
+        responses: {
+          200: { description: "Массив моделей: id, name, slug, brand, carsCount" },
         },
       },
     },

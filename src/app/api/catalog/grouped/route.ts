@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
 
     const cars = await getGroupedCars({
       brandSlug: searchParams.get("brand") ?? undefined,
+      modelSlug: searchParams.get("model") ?? undefined,
       transmission: searchParams.get("transmission") ?? undefined,
       priceMin: searchParams.get("priceMin") ? parseInt(searchParams.get("priceMin")!) : undefined,
       priceMax: searchParams.get("priceMax") ? parseInt(searchParams.get("priceMax")!) : undefined,
