@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { yumeApi } from "./api";
 import type { YumeInventory, YumeScheduleInventory } from "./api";
+import { CrmRequestStatus, mapCrmStatus } from "./booking-status";
 
 const STATUS_INTERVAL = 60_000; // 1 minute — car statuses (schedules)
 const BOOKINGS_INTERVAL = 60_000; // 1 minute — active booking status polling
@@ -9,17 +10,6 @@ const INVENTORY_INTERVAL = 3_600_000; // 1 hour — full car inventory
 let statusTimer: ReturnType<typeof setInterval> | null = null;
 let bookingsTimer: ReturnType<typeof setInterval> | null = null;
 let inventoryTimer: ReturnType<typeof setInterval> | null = null;
-
-const BOOKING_STATUS_MAP: Record<string, string> = {
-  request: "PENDING",
-  reserve: "CONFIRMED",
-  inrent: "ACTIVE",
-  exceed: "ACTIVE",
-  completed: "COMPLETED",
-  debtor: "COMPLETED",
-  cancelled: "CANCELLED",
-  cancel: "CANCELLED",
-};
 
 // Use globalThis to share state between instrumentation and API routes
 const g = globalThis as unknown as {
@@ -163,7 +153,7 @@ async function syncActiveBookings() {
   for (const booking of activeBookings) {
     try {
       const req = await yumeApi.getRequestOrOrder(booking.requestId!);
-      const newStatus = BOOKING_STATUS_MAP[req.status_color] || booking.status;
+      const newStatus = mapCrmStatus(req.status, booking.status);
 
       // Sync documents for CONFIRMED/ACTIVE bookings
       let documents: unknown | undefined;
@@ -367,9 +357,13 @@ function getInventoryStatuses(
   const result = new Map<number, InventoryStatus>();
 
   for (const inv of scheduleInventories) {
-    // "reserve" = booked, "inrent" = car on hands, "exceed" = overdue
+    // Занятость дают только бронь и выданное авто; отменённые и завершённые — нет.
+    // Просрочка отдельным статусом не приходит: это IN_RENT с прошедшим end_at,
+    // она разбирается ниже по датам.
     const relevantBookings = inv.schedules.filter(
-      (s) => s.request_status_color === "reserve" || s.request_status_color === "inrent" || s.request_status_color === "exceed"
+      (s) =>
+        s.request_status === CrmRequestStatus.RESERVED ||
+        s.request_status === CrmRequestStatus.IN_RENT
     );
 
     if (relevantBookings.length === 0) continue;
@@ -381,7 +375,7 @@ function getInventoryStatuses(
     for (const schedule of relevantBookings) {
       const start = new Date(schedule.start_at);
       const end = new Date(schedule.end_at);
-      const isOnHands = schedule.request_status_color === "inrent" || schedule.request_status_color === "exceed";
+      const isOnHands = schedule.request_status === CrmRequestStatus.IN_RENT;
 
       // Car is on hands (active/exceed) — overdue if end < now
       if (isOnHands) {

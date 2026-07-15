@@ -1,16 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { yumeApi } from "./api";
-
-const STATUS_MAP: Record<string, string> = {
-  request: "PENDING",
-  reserve: "CONFIRMED",
-  inrent: "ACTIVE",
-  exceed: "ACTIVE",
-  completed: "COMPLETED",
-  debtor: "COMPLETED",
-  cancelled: "CANCELLED",
-  cancel: "CANCELLED",
-};
+import { mapCrmStatus } from "./booking-status";
 
 export async function syncUserBookings(userId: string): Promise<number> {
   const user = await prisma.user.findUnique({
@@ -36,7 +26,7 @@ export async function syncUserBookings(userId: string): Promise<number> {
     if (!firstInv) {
       skippedNoInv++;
       console.log(
-        `[SyncBookings] CRM #${req.id} (status=${req.status_color}): no inventories attached, skipping`
+        `[SyncBookings] CRM #${req.id} (status=${req.status}): no inventories attached, skipping`
       );
       continue;
     }
@@ -52,7 +42,12 @@ export async function syncUserBookings(userId: string): Promise<number> {
       continue;
     }
 
-    const status = STATUS_MAP[req.status_color] || "PENDING";
+    const existing = await prisma.booking.findUnique({
+      where: { requestId: req.id },
+    });
+
+    // Неизвестный статус оставляет заявку как есть; PENDING — только для новых.
+    const status = mapCrmStatus(req.status, existing?.status ?? "PENDING");
 
     // Fetch documents for confirmed/active bookings
     let documents: unknown | undefined;
@@ -82,10 +77,6 @@ export async function syncUserBookings(userId: string): Promise<number> {
       }
     }
 
-    const existing = await prisma.booking.findUnique({
-      where: { requestId: req.id },
-    });
-
     // Don't overwrite locally cancelled bookings until CRM catches up
     if (existing?.status === "CANCELLED" && status !== "CANCELLED") {
       continue;
@@ -97,7 +88,7 @@ export async function syncUserBookings(userId: string): Promise<number> {
     // Local RETURN_PENDING waits for CRM request to transition to "completed"
     // (manager finalises the rental in Yume after reviewing return photos).
     // Yume auto-sets inventorization.checked=true on API-created records, so
-    // it cannot be used as an approval signal — we track request.status_color.
+    // it cannot be used as an approval signal — we track request.status.
     if (existing?.status === "RETURN_PENDING") {
       if (status === "COMPLETED") {
         await prisma.booking.update({
@@ -106,11 +97,11 @@ export async function syncUserBookings(userId: string): Promise<number> {
         });
         synced++;
         console.log(
-          `[SyncBookings] CRM #${req.id}: status_color=${req.status_color} → COMPLETED`
+          `[SyncBookings] CRM #${req.id}: crmStatus=${req.status} → COMPLETED`
         );
       } else {
         console.log(
-          `[SyncBookings] CRM #${req.id}: RETURN_PENDING held (crmStatus=${req.status_color})`
+          `[SyncBookings] CRM #${req.id}: RETURN_PENDING held (crmStatus=${req.status})`
         );
       }
       continue;

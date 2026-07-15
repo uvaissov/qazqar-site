@@ -593,8 +593,8 @@ export type YumeRequestInventory = {
 export type YumeRequest = {
   id: number;
   client: YumeClient;
+  /** Числовой статус заявки. Расшифровка — CrmRequestStatus в ./booking-status. */
   status: number;
-  status_color: string;
   rent_start: string;
   rent_end: string;
   rent_fact_start: string | null;
@@ -665,7 +665,8 @@ export type YumeSchedule = {
   id: number;
   inventory: number;
   request_id: number;
-  request_status_color: string;
+  /** Числовой статус заявки. Расшифровка — CrmRequestStatus в ./booking-status. */
+  request_status: number;
   client: YumeScheduleClient;
   start_at: string;
   end_at: string;
