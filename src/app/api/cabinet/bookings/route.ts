@@ -64,6 +64,7 @@ export async function GET() {
     car: b.car ? {
       id: b.car.id,
       slug: b.car.slug,
+      number: b.car.number,
       modelName: b.car.model.name,
       brand: {
         id: b.car.model.brand.id,

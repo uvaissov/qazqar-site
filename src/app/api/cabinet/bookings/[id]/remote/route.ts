@@ -47,7 +47,9 @@ export async function POST(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (booking.status !== "ACTIVE") {
+    // RETURN_PENDING тоже пускаем: машина ещё физически у клиента — он сдал фото
+    // и ждёт приёмки, ему нужно запереть авто и уйти.
+    if (booking.status !== "ACTIVE" && booking.status !== "RETURN_PENDING") {
       return NextResponse.json(
         { error: "Remote control available only for active bookings" },
         { status: 400 }
