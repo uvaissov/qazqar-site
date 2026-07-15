@@ -293,3 +293,31 @@ enum OtpType {
   RESET_PASSWORD
   LOGIN
 }
+
+/// Баннер карусели на главной мобильного приложения.
+///
+/// Только картинка — текст запекает дизайнер в само изображение. Поэтому
+/// баннеры чаще всего языкозависимы: locale = "ru" | "kz". null — показывать
+/// на обоих языках (для картинок без текста), иначе пришлось бы грузить один
+/// и тот же файл дважды.
+model Banner {
+  id       String  @id @default(cuid())
+  imageUrl String
+  /// Внешний URL. Пусто — баннер некликабельный.
+  linkUrl  String?
+  /// "ru" | "kz" | null (оба языка)
+  locale   String?
+
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  /// Период показа. null с обеих сторон — показывать всегда.
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortOrder])
+  @@map("banners")
+}
