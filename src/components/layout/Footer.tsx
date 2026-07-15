@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { Smartphone } from "lucide-react";
 import { Link } from "@/i18n/routing";
 
 export default function Footer() {
@@ -30,6 +31,15 @@ export default function Footer() {
           <div className="space-y-3">
             <p className="text-sm">{t("support")}</p>
             <p className="text-sm text-gray-400">{t("hours")}</p>
+
+            <a
+              href={`${process.env.NEXT_PUBLIC_MINIO_URL}/qazqar.apk`}
+              className="inline-flex items-center gap-2 text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              <Smartphone className="h-5 w-5" />
+              {t("downloadApp")}
+            </a>
+            <p className="text-xs text-gray-500">{t("downloadHint")}</p>
           </div>
 
           {/* Contact */}
