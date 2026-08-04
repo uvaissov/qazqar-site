@@ -499,6 +499,8 @@ export default function BookingForm({
                   <p className="text-xs text-amber-600">{t("otpSentTo")} <strong>{email}</strong></p>
                   <input
                     type="text"
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
                     value={loginOtp}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, "").slice(0, 6);
@@ -888,6 +890,8 @@ export default function BookingForm({
             </label>
             <input
               id="booking-otp"
+                autoComplete="one-time-code"
+                inputMode="numeric"
               type="text"
               value={otpCode}
               onChange={(e) => {

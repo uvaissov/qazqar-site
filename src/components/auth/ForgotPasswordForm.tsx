@@ -175,6 +175,8 @@ export default function ForgotPasswordForm() {
               </label>
               <input
                 id="otp"
+                autoComplete="one-time-code"
+                inputMode="numeric"
                 type="text"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
