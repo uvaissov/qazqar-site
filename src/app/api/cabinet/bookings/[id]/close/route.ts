@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { deleteFilesQuietly, uploadFile } from "@/lib/minio";
 import { yumeApi } from "@/lib/yume/api";
+import { notifyReturnPending } from "@/lib/telegram/notify";
 import { NextRequest, NextResponse } from "next/server";
 
 const MAX_MANDATORY_PHOTOS = 5;
@@ -65,7 +66,13 @@ export async function POST(
       where: { id },
       include: {
         user: { select: { clientId: true } },
-        car: { select: { inventoryId: true } },
+        car: {
+          select: {
+            inventoryId: true,
+            number: true,
+            model: { select: { name: true, brand: { select: { name: true } } } },
+          },
+        },
       },
     });
     const currentUser = await prisma.user.findUnique({
@@ -181,6 +188,15 @@ export async function POST(
         status: true,
         documents: true,
       },
+    });
+
+    // Уведомление в Telegram: заявка упала на обработку (проверка возврата).
+    await notifyReturnPending({
+      bookingId: updatedBooking.id,
+      requestId: booking.requestId,
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      carLabel: `${booking.car.model.brand.name} ${booking.car.model.name} · ${booking.car.number}`,
     });
 
     return NextResponse.json({
