@@ -4,6 +4,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usePathname } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
+import { formatPhone } from "@/lib/phone";
 
 const CRM_BASE_URL = "https://qazqar.yume.cloud/orders";
 
@@ -206,7 +207,7 @@ export default function BookingsList({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {booking.customerPhone}
+                      {formatPhone(booking.customerPhone)}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {booking.car.model.brand.name} {booking.car.model.name}

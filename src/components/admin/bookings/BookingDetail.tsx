@@ -2,6 +2,7 @@
 
 import { useTranslations, useLocale } from "next-intl";
 import { Link } from "@/i18n/routing";
+import { formatPhone } from "@/lib/phone";
 
 const CRM_BASE_URL = "https://qazqar.yume.cloud/orders";
 
@@ -167,7 +168,7 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
                 <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
                   {t("phone")}
                 </label>
-                <p className="mt-1 text-gray-900">{booking.customerPhone}</p>
+                <p className="mt-1 text-gray-900">{formatPhone(booking.customerPhone)}</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">

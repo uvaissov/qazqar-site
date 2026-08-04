@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { compare, hash } from "bcryptjs";
+import { normalizePhone } from "@/lib/phone";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -30,7 +31,24 @@ export async function PUT(request: Request) {
     const updateData: Record<string, string> = {};
     if (firstName) updateData.firstName = firstName;
     if (lastName) updateData.lastName = lastName;
-    updateData.phone = phone || null as any;
+
+    // Резидентность в теле запроса не приходит — берём из профиля, иначе
+    // нерезиденту с иностранным номером не дали бы сохранить свой телефон.
+    if (phone) {
+      const owner = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { isResident: true },
+      });
+      const phoneResult = normalizePhone(phone, {
+        resident: owner?.isResident !== false,
+      });
+      if (!phoneResult.ok) {
+        return NextResponse.json({ error: phoneResult.error }, { status: 400 });
+      }
+      updateData.phone = phoneResult.phone;
+    } else {
+      updateData.phone = null as unknown as string;
+    }
 
     // Password change
     if (newPassword) {

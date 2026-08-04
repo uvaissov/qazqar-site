@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ImageUpload from "./ImageUpload";
+import { normalizePhone } from "@/lib/phone";
 
 interface CarModel {
   id: string;
@@ -134,13 +135,17 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
     setError("");
     setSaving(true);
 
+    // Номер SIM пульта нормализуем теми же правилами, что и сервер: «8705…»
+    // здесь такой же валидный ввод, как «+7705…».
+    let normalizedRemotePhone = "";
     if (hasRemote) {
-      const phoneOk = /^\+7\d{10}$/.test(remotePhone.trim());
-      if (!phoneOk) {
+      const result = normalizePhone(remotePhone, { resident: true });
+      if (!result.ok) {
         setError("Номер SIM пульта должен быть в формате +7XXXXXXXXXX");
         setSaving(false);
         return;
       }
+      normalizedRemotePhone = result.phone;
     }
 
     const body = {
@@ -157,7 +162,7 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
       seats: Number(seats),
       hasAC,
       hasRemote,
-      remotePhone: hasRemote ? remotePhone.trim() : null,
+      remotePhone: hasRemote ? normalizedRemotePhone : null,
       deposit: Number(deposit) || 0,
       status,
       images,

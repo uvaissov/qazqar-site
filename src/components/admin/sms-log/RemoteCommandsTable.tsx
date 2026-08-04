@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations, useLocale } from "next-intl";
+import { formatPhone } from "@/lib/phone";
 
 type RemoteCommandItem = {
   id: string;
@@ -227,7 +228,7 @@ export default function RemoteCommandsTable({
                         )}
                       </td>
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                        {c.targetPhone}
+                        {formatPhone(c.targetPhone)}
                       </td>
                     </FragmentRow>
                   );

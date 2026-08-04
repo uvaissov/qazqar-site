@@ -20,6 +20,7 @@
 //   REMOTE_SMS_LOCK_TEXT     — текст SMS для lock   (default "CLOSE")
 
 import net from "node:net";
+import { normalizePhone } from "@/lib/phone";
 
 export type RemoteSmsResult = {
   ok: boolean;
@@ -39,18 +40,10 @@ export function smsTextFor(action: "UNLOCK" | "LOCK"): string {
   return action === "UNLOCK" ? UNLOCK_TEXT : LOCK_TEXT;
 }
 
-export function normalizePhoneForGateway(raw: string): string | null {
-  const digits = raw.replace(/\D+/g, "");
-  let normalized = digits;
-  if (normalized.length === 11 && normalized.startsWith("8")) {
-    normalized = "7" + normalized.slice(1);
-  } else if (normalized.length === 10) {
-    normalized = "7" + normalized;
-  }
-  if (normalized.length !== 11 || !normalized.startsWith("7")) {
-    return null;
-  }
-  return normalized;
+// Шлюзу нужен номер без ведущего «+»: «77051023353».
+function normalizePhoneForGateway(raw: string): string | null {
+  const result = normalizePhone(raw, { resident: true });
+  return result.ok ? result.phone.slice(1) : null;
 }
 
 // Текст SMS уходит внутрь AMI-команды в кавычках. Убираем то, что ломает

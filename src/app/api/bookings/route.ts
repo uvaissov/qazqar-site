@@ -3,6 +3,8 @@ import { getSession, signAccessToken, signRefreshToken, setAuthCookies } from "@
 import { verifyOtp } from "@/lib/otp";
 import { yumeApi, YumeApiError } from "@/lib/yume/api";
 import { BookingStatus } from "@/generated/prisma/enums";
+import { notifyNewBooking } from "@/lib/telegram/notify";
+import { normalizePhone } from "@/lib/phone";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 
@@ -12,17 +14,30 @@ class BookingConflictError extends Error {}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { carId, customerName, customerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment, pickupAddressId, returnAddressId, withDeposit } = body;
+    const { carId, customerName, customerPhone: rawCustomerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment, pickupAddressId, returnAddressId, withDeposit } = body;
 
-    if (!carId || !customerName || !customerPhone || !startDate || !endDate) {
+    if (!carId || !customerName || !rawCustomerPhone || !startDate || !endDate) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
+    // Дальше по коду телефон ищет юзера через findUnique — по сырой строке гость
+    // с «8705…» не находил свой аккаунт с «+7705…» и заводил дубль.
+    const phoneResult = normalizePhone(rawCustomerPhone, {
+      resident: isResident !== false,
+    });
+    if (!phoneResult.ok) {
+      return NextResponse.json({ error: phoneResult.error }, { status: 400 });
+    }
+    const customerPhone = phoneResult.phone;
+
     // Get car and check availability
-    const car = await prisma.car.findUnique({ where: { id: carId } });
+    const car = await prisma.car.findUnique({
+      where: { id: carId },
+      include: { model: { include: { brand: true } } },
+    });
     if (!car) {
       return NextResponse.json(
         { error: "Car not found" },
@@ -268,6 +283,20 @@ export async function POST(request: Request) {
       }
       throw err;
     }
+
+    // Уведомление в Telegram о новой заявке (fire-and-forget, ошибки проглатываются).
+    await notifyNewBooking({
+      bookingId: booking.id,
+      requestId: requestId ?? null,
+      customerName,
+      customerPhone,
+      carLabel: `${car.model.brand.name} ${car.model.name} · ${car.number}`,
+      startDate: start,
+      endDate: end,
+      totalPrice: booking.totalPrice,
+      withDeposit: booking.withDeposit,
+      comment,
+    });
 
     // Set auth cookie if user was created or verified via OTP
     const response = NextResponse.json({

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import PhoneInput from "@/components/ui/PhoneInput";
 
 type UserData = {
   firstName: string;
@@ -135,12 +136,11 @@ export default function ProfileForm({ user }: { user: UserData }) {
           <label className="mb-1 block text-sm font-medium text-gray-700">
             {t("phone")}
           </label>
-          <input
-            type="tel"
+          <PhoneInput
             value={form.phone}
-            onChange={(e) => updateField("phone", e.target.value)}
+            onChange={(phone) => updateField("phone", phone)}
+            resident={user.isResident}
             className={inputClass}
-            placeholder="+7 7XX XXX XX XX"
           />
         </div>
 

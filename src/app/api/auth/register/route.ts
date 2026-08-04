@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
 import { validateIin } from "@/lib/iin";
+import { normalizePhone } from "@/lib/phone";
 import { yumeApi } from "@/lib/yume/api";
 import { findClientCandidates } from "@/lib/yume/find-clients";
 import { hash } from "bcryptjs";
@@ -40,25 +41,52 @@ export async function POST(request: Request) {
 
     }
 
+    // Телефон приводим к каноническому виду до похода в CRM: иначе один и тот же
+    // номер в разных записях создаёт дубли клиентов и ломает уникальность в БД.
+    let normalizedPhone: string | null = null;
+    if (phone) {
+      const phoneResult = normalizePhone(phone, { resident });
+      if (!phoneResult.ok) {
+        return NextResponse.json({ error: phoneResult.error }, { status: 400 });
+      }
+      normalizedPhone = phoneResult.phone;
+    }
+
     // Find or create client in Yume CRM (порядок поиска: ИИН → email → телефон).
     try {
-      const candidates = await findClientCandidates({ iin, email, phone });
+      const candidates = await findClientCandidates({
+        iin,
+        email,
+        phone: normalizedPhone,
+      });
       const crmClient = candidates[0];
 
       if (crmClient) {
         crmClientId = crmClient.id;
+        console.log(
+          `[Register] ${email}: привязан существующий CRM-клиент #${crmClientId}` +
+            (candidates.length > 1
+              ? ` (кандидатов ${candidates.length}, взят первый)`
+              : "")
+        );
       } else {
         // Client not found — create in CRM
         const created = await yumeApi.createClient({
           name: `${lastName} ${firstName}`,
           email,
-          ...(phone && { phone }),
+          ...(normalizedPhone && { phone: normalizedPhone }),
           ...(iin && { iin }),
         });
         crmClientId = created.id;
+        console.log(`[Register] ${email}: создан новый CRM-клиент #${crmClientId}`);
       }
     } catch (err) {
-      console.error("Yume CRM client lookup/create failed, skipping:", err);
+      // Регистрация продолжится с clientId=null — снаружи это выглядит как
+      // «просто не привязалось», поэтому причину пишем явно.
+      console.error(
+        `[Register] ${email}: CRM недоступна, пользователь останется без clientId —`,
+        err
+      );
     }
 
     // Verify OTP
@@ -79,6 +107,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // phone в схеме @unique. Раньше «8705…» и «+7705…» считались разными
+    // номерами и оба записывались; после нормализации это честный конфликт,
+    // и без явной проверки Prisma отдаёт 500 вместо понятного ответа.
+    if (normalizedPhone) {
+      const phoneOwner = await prisma.user.findUnique({
+        where: { phone: normalizedPhone },
+      });
+      if (phoneOwner) {
+        return NextResponse.json({ error: "PHONE_EXISTS" }, { status: 409 });
+      }
+    }
+
     const passwordHash = await hash(password, 12);
 
     const user = await prisma.user.create({
@@ -86,7 +126,7 @@ export async function POST(request: Request) {
         firstName,
         lastName,
         email,
-        phone: phone || null,
+        phone: normalizedPhone,
         iin: iin || null,
         isResident: resident,
         clientId: crmClientId,

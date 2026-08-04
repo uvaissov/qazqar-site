@@ -7,6 +7,7 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import { ru } from "date-fns/locale/ru";
 import { kk } from "date-fns/locale/kk";
 import "react-datepicker/dist/react-datepicker.css";
+import PhoneInput from "@/components/ui/PhoneInput";
 
 type Discount = {
   id: string;
@@ -551,12 +552,12 @@ export default function BookingForm({
              >
                {t("phone")} *
              </label>
-             <input
+             <PhoneInput
                id="booking-phone"
-               type="tel"
                required
                value={phone}
-               onChange={(e) => setPhone(e.target.value)}
+               onChange={setPhone}
+               resident={isResident}
                className="w-full px-4 py-3.5 bg-white border-2 border-gray-100 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors font-semibold text-gray-900"
              />
            </div>

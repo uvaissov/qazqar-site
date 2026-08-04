@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { formatPhone } from "@/lib/phone";
 import { useLocale } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 
@@ -201,7 +202,7 @@ export default function UsersList({ users }: { users: User[] }) {
                 {user.firstName} {user.lastName}
               </td>
               <td className="px-4 py-3 text-gray-600">{user.email || "—"}</td>
-              <td className="px-4 py-3 text-gray-600">{user.phone || "—"}</td>
+              <td className="px-4 py-3 text-gray-600">{user.phone ? formatPhone(user.phone) : "—"}</td>
               <td className="px-4 py-3">
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${roleBadge[user.role] || "bg-gray-100 text-gray-800"}`}
@@ -290,7 +291,7 @@ export default function UsersList({ users }: { users: User[] }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-400 uppercase">{t("phone")}</p>
-                  <p className="text-gray-700">{clientCard.data.phone || "—"}</p>
+                  <p className="text-gray-700">{clientCard.data.phone ? formatPhone(clientCard.data.phone) : "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-400 uppercase">Email</p>
@@ -380,7 +381,7 @@ export default function UsersList({ users }: { users: User[] }) {
                 >
                   <div className="font-medium text-gray-900">{c.name}</div>
                   <div className="mt-1 text-xs text-gray-500">
-                    {c.phone} {c.iin && `| ИИН: ${c.iin}`}
+                    {c.phone ? formatPhone(c.phone) : "—"} {c.iin && `| ИИН: ${c.iin}`}
                   </div>
                 </button>
               ))}

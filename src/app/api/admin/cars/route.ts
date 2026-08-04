@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { normalizePhone } from "@/lib/phone";
 
 export async function GET() {
   try {
@@ -62,11 +63,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (hasRemote && !(remotePhone && /^\+7\d{10}$/.test(String(remotePhone).trim()))) {
-      return NextResponse.json(
-        { error: "remotePhone required (+7XXXXXXXXXX) when hasRemote is true" },
-        { status: 422 }
-      );
+    // Номер SIM-карты авто — всегда казахстанский, поэтому resident: true.
+    let normalizedRemotePhone: string | null = null;
+    if (hasRemote) {
+      const result = remotePhone
+        ? normalizePhone(String(remotePhone), { resident: true })
+        : null;
+      if (!result?.ok) {
+        return NextResponse.json(
+          { error: "remotePhone required (+7XXXXXXXXXX) when hasRemote is true" },
+          { status: 422 }
+        );
+      }
+      normalizedRemotePhone = result.phone;
     }
 
     const existing = await prisma.car.findFirst({
@@ -102,7 +111,7 @@ export async function POST(request: Request) {
         seats: Number(seats) || 5,
         hasAC: hasAC ?? true,
         hasRemote: Boolean(hasRemote),
-        remotePhone: hasRemote ? String(remotePhone).trim() : null,
+        remotePhone: normalizedRemotePhone,
         status: status || "AVAILABLE",
         slug,
         deposit: Number(deposit) || 0,

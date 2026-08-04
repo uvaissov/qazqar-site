@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "@/i18n/routing";
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import PhoneInput from "@/components/ui/PhoneInput";
 
 type Step = "email" | "otp" | "details";
 
@@ -138,6 +139,8 @@ export default function RegisterForm() {
           IIN_CHECKSUM: t("iinChecksum"),
           IIN_EXISTS: t("iinExists"),
           IIN_NOT_FOUND_CRM: t("iinNotFoundCrm"),
+          INVALID_PHONE: t("phoneInvalid"),
+          PHONE_EXISTS: t("phoneExists"),
         };
         setError(errorMap[data.error] || t("registerError"));
         if (data.error === "INVALID_OTP") setStep("email");
@@ -272,7 +275,7 @@ export default function RegisterForm() {
               <label htmlFor="phone" className="mb-1 block text-sm font-medium text-gray-700">
                 {t("phone")}
               </label>
-              <input id="phone" type="tel" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} className={inputClass} placeholder="+7 7XX XXX XX XX" />
+              <PhoneInput id="phone" value={form.phone} onChange={(phone) => setForm((p) => ({ ...p, phone }))} resident={form.isResident} className={inputClass} />
             </div>
 
             {/* Resident toggle */}
