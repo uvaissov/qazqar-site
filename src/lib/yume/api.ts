@@ -406,6 +406,49 @@ class YumeApi {
     return data.results;
   }
 
+  /** Шаблоны документов CRM. Активные — те, у которых `status: "active"`. */
+  async getDocumentTemplates(): Promise<YumeDocumentTemplate[]> {
+    const data = await this.request<
+      YumeListResponse<YumeDocumentTemplate> | YumeDocumentTemplate[]
+    >("GET", `/v2/documents/templates/?skip_error_handling=true`);
+    return Array.isArray(data) ? data : data.results;
+  }
+
+  /** Генерирует документ по шаблону для заявки. */
+  async createDocument(
+    requestId: number,
+    templateId: number
+  ): Promise<YumeDocument> {
+    return this.request<YumeDocument>("POST", `/v2/documents/`, {
+      object_id: requestId,
+      content_type: "orderrequest",
+      template: templateId,
+      context: {},
+      regenerate: false,
+      resign: false,
+    });
+  }
+
+  /**
+   * Заводит подписанта-клиента у документа и возвращает его `uuid` — из него
+   * строится персональная ссылка `https://yume.kz/documents/{uuid}`.
+   *
+   * Без этого вызова документ существует, но подписывать водителю нечего:
+   * в `signs[]` нет записи с `type: "client"`.
+   *
+   * `method_allowed: [2]` — способ подписания, который использует CRM.
+   */
+  async createDocumentClientSign(
+    documentId: number,
+    clientId: number
+  ): Promise<YumeDocumentSign> {
+    return this.request<YumeDocumentSign>(
+      "POST",
+      `/v2/documents/${documentId}/signs/`,
+      { client: clientId, method_allowed: [2] }
+    );
+  }
+
   // Inventories
   async getInventories(page = 1, pageSize = 100) {
     return this.request<YumeListResponse<YumeInventory>>(
@@ -719,6 +762,13 @@ export type YumeDocumentFile = {
   id: number;
   file: string;
   type: number; // 0=original, 1=overlay, 2=esign, 3=sign
+};
+
+export type YumeDocumentTemplate = {
+  id: number;
+  name: string;
+  content_type: string; // "orderrequest" для заявок
+  status: string; // "active" — шаблон выдаётся, иначе пропускаем
 };
 
 export type YumeDocument = {

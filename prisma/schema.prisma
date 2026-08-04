@@ -118,6 +118,10 @@ model Booking {
   updatedAt          DateTime        @updatedAt
   cancellationReason String?
   documents          Json?
+  // Момент последнего похода в CRM за документами этой заявки. Используется как
+  // атомарный захват: параллельный синк не полезет генерировать документы и
+  // подписантов повторно (иначе на один заказ создаётся два комплекта).
+  documentsSyncedAt  DateTime?
   pickupDocuments    Json?
   depositAmount      Int?
   depositLabel       String?
