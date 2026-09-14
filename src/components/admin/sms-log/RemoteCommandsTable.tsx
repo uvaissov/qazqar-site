@@ -11,6 +11,8 @@ type RemoteCommandItem = {
   ok: boolean;
   error: string | null;
   providerId: string | null;
+  replyText: string | null;
+  confirmedAt: string | null;
   targetPhone: string;
   smsText: string;
   car: {
@@ -165,7 +167,15 @@ export default function RemoteCommandsTable({
               ) : (
                 items.map((c) => {
                   const isOpen = expanded === c.id;
-                  const hasDetail = Boolean(c.error || c.providerId);
+                  const hasDetail = Boolean(c.error || c.providerId || c.replyText);
+                  const detail = [
+                    c.error || c.providerId
+                      ? `${t("response")}: ${c.error || c.providerId}`
+                      : null,
+                    c.replyText ? `${t("carReply")}: ${c.replyText}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join("\n");
                   return (
                     <FragmentRow
                       key={c.id}
@@ -173,8 +183,8 @@ export default function RemoteCommandsTable({
                       hasDetail={hasDetail}
                       colSpan={colSpan}
                       onToggle={() => setExpanded(isOpen ? null : c.id)}
-                      detail={c.error || c.providerId || t("noValue")}
-                      detailLabel={t("response")}
+                      detail={detail || t("noValue")}
+                      detailLabel={t("details")}
                     >
                       <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                         {formatDateTime(c.createdAt)}
@@ -211,12 +221,18 @@ export default function RemoteCommandsTable({
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            c.ok
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
+                            !c.ok
+                              ? "bg-red-100 text-red-700"
+                              : c.confirmedAt
+                                ? "bg-green-100 text-green-700"
+                                : "bg-amber-100 text-amber-700"
                           }`}
                         >
-                          {c.ok ? t("statusOk") : t("statusFail")}
+                          {!c.ok
+                            ? t("statusFail")
+                            : c.confirmedAt
+                              ? t("statusConfirmed")
+                              : t("statusOk")}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-600">

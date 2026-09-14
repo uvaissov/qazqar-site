@@ -446,7 +446,8 @@
     "phone": "Телефон",
     "open": "Ашу",
     "close": "Жабу",
-    "statusOk": "Шлюз қабылдады",
+    "statusOk": "Жіберілді",
+    "statusConfirmed": "Пульт растады",
     "statusFail": "Қате",
     "empty": "Әзірге командалар жоқ",
     "loading": "Жүктелуде…",
@@ -455,6 +456,8 @@
     "next": "Алға",
     "shown": "{total} ішінен {shown} көрсетілді",
     "response": "Шлюз жауабы",
+    "carReply": "Пульт жауабы",
+    "details": "Толығырақ",
     "noValue": "—"
   },
   "cabinet": {

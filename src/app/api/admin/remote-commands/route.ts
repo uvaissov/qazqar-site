@@ -66,6 +66,8 @@ export async function GET(request: NextRequest) {
         ok: c.ok,
         error: c.error,
         providerId: c.providerId,
+        replyText: c.replyText,
+        confirmedAt: c.confirmedAt,
         targetPhone: c.targetPhone,
         smsText: c.smsText,
         car: car

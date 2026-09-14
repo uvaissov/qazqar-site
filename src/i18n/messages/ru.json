@@ -446,7 +446,8 @@
     "phone": "Телефон",
     "open": "Открыть",
     "close": "Закрыть",
-    "statusOk": "Принято шлюзом",
+    "statusOk": "Отправлено",
+    "statusConfirmed": "Подтверждено пультом",
     "statusFail": "Ошибка",
     "empty": "Команд ещё не было",
     "loading": "Загрузка…",
@@ -455,6 +456,8 @@
     "next": "Вперёд",
     "shown": "Показано {shown} из {total}",
     "response": "Ответ шлюза",
+    "carReply": "Ответ пульта",
+    "details": "Подробности",
     "noValue": "—"
   },
   "cabinet": {

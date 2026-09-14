@@ -282,6 +282,10 @@ model RemoteCommand {
   providerId  String?
   ok          Boolean      @default(true)
   error       String?
+  /// Ответ пульта по SMS (последний в окне ожидания), даже если не распознан.
+  replyText   String?
+  /// Пульт подтвердил выполнение («Замки откр.» / «Замки закр.»).
+  confirmedAt DateTime?
   createdAt   DateTime     @default(now())
   booking     Booking      @relation(fields: [bookingId], references: [id])
   user        User         @relation(fields: [userId], references: [id])
