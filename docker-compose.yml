@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.14-alpine
     container_name: qazqar-postgres
     ports:
       - "5433:5432"
@@ -17,7 +17,7 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: qazqar-minio
     ports:
       - "9002:9000"
@@ -35,7 +35,7 @@ services:
       retries: 5
 
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
     container_name: qazqar-minio-init
     depends_on:
       minio:
@@ -50,7 +50,7 @@ services:
       "
 
   mailhog:
-    image: mailhog/mailhog:latest
+    image: mailhog/mailhog:v1.0.1
     container_name: qazqar-mailhog
     ports:
       - "1025:1025"

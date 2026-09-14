@@ -1,7 +1,7 @@
 # QazQar Site — single-stage образ для стейджинга.
 # next start + prisma migrate deploy на старте. Полный node_modules (нужен для
 # prisma CLI и tsx-сида). Debian-база (glibc) — стабильнее Prisma-движков, чем alpine.
-FROM node:22-bookworm-slim
+FROM node:22.23.1-bookworm-slim
 
 WORKDIR /app
 

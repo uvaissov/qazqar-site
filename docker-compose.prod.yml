@@ -1,6 +1,10 @@
 # QazQar Site — прод/стейджинг стек.
 # Все порты публикуются только на 127.0.0.1 (наружу проксирует системный nginx на VM).
 # Значения секретов берутся из /opt/qazqar/.env (interpolation + env_file).
+#
+# Образы запинены на версии, которые крутились на проде 2026-09-14 (дайджесты
+# сверены с запущенными контейнерами). MinIO — с quay.io: репозитории
+# docker.io/minio/* удалены с Docker Hub, `minio/minio:latest` больше не тянется.
 services:
   app:
     build:
@@ -20,7 +24,7 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.14-alpine
     container_name: qazqar-postgres
     restart: unless-stopped
     environment:
@@ -38,7 +42,7 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: qazqar-minio
     restart: unless-stopped
     environment:
@@ -57,7 +61,7 @@ services:
       retries: 5
 
   minio-init:
-    image: minio/mc:latest
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
     container_name: qazqar-minio-init
     depends_on:
       minio:
@@ -78,7 +82,7 @@ services:
   # MH_UI_WEB_PATH обязателен: без него mailhog отдаёт css/js по абсолютным путям от
   # корня, и под префиксом /mailhog/ интерфейс ломается.
   mailhog:
-    image: mailhog/mailhog:latest
+    image: mailhog/mailhog:v1.0.1
     container_name: qazqar-mailhog
     restart: unless-stopped
     environment:
