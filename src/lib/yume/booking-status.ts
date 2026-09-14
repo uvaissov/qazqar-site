@@ -17,9 +17,11 @@ import type { BookingStatus } from "@/generated/prisma/enums";
  *   3 — отменена                           (69/79 с is_cancellation в комментариях)
  *   4 — возвращена и оплачена              (785/785 возвращено, payment_status=1 у всех)
  *   5 — возвращена, есть долг              (93/93 возвращено, 92/93 недоплачено)
- *
- * Просрочка ("exceed") отдельным числом не приходит — это IN_RENT с прошедшим
- * rent_end, и вызывающий код определяет её по датам.
+ *   6 — просрочка: выдана, rent_end прошёл, не возвращена
+ *       (заявка 2654, 2026-09-14: fact_start есть, fact_end нет). В выборке
+ *       выше её не было, поэтому раньше считалось, что просрочка отдельным
+ *       числом не приходит — из-за этого авто на руках показывалось свободным,
+ *       а CRM отбивал бронь 409.
  */
 export const CrmRequestStatus = {
   NEW: 0,
@@ -28,12 +30,14 @@ export const CrmRequestStatus = {
   CANCELLED: 3,
   COMPLETED: 4,
   DEBTOR: 5,
+  EXCEED: 6,
 } as const;
 
 const CRM_TO_BOOKING: Record<number, BookingStatus> = {
   [CrmRequestStatus.NEW]: "PENDING",
   [CrmRequestStatus.RESERVED]: "CONFIRMED",
   [CrmRequestStatus.IN_RENT]: "ACTIVE",
+  [CrmRequestStatus.EXCEED]: "ACTIVE",
   [CrmRequestStatus.CANCELLED]: "CANCELLED",
   // Обе терминальные аренды — завершённые для клиента; долг ведётся в CRM.
   [CrmRequestStatus.COMPLETED]: "COMPLETED",

@@ -357,13 +357,13 @@ function getInventoryStatuses(
   const result = new Map<number, InventoryStatus>();
 
   for (const inv of scheduleInventories) {
-    // Занятость дают только бронь и выданное авто; отменённые и завершённые — нет.
-    // Просрочка отдельным статусом не приходит: это IN_RENT с прошедшим end_at,
-    // она разбирается ниже по датам.
+    // Занятость дают только бронь и авто на руках (выдано / просрочено);
+    // отменённые и завершённые — нет.
     const relevantBookings = inv.schedules.filter(
       (s) =>
         s.request_status === CrmRequestStatus.RESERVED ||
-        s.request_status === CrmRequestStatus.IN_RENT
+        s.request_status === CrmRequestStatus.IN_RENT ||
+        s.request_status === CrmRequestStatus.EXCEED
     );
 
     if (relevantBookings.length === 0) continue;
@@ -375,7 +375,9 @@ function getInventoryStatuses(
     for (const schedule of relevantBookings) {
       const start = new Date(schedule.start_at);
       const end = new Date(schedule.end_at);
-      const isOnHands = schedule.request_status === CrmRequestStatus.IN_RENT;
+      const isOnHands =
+        schedule.request_status === CrmRequestStatus.IN_RENT ||
+        schedule.request_status === CrmRequestStatus.EXCEED;
 
       // Car is on hands (active/exceed) — overdue if end < now
       if (isOnHands) {
