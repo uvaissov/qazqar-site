@@ -64,9 +64,8 @@ export async function POST(
     }
 
     const dbAction = action === "unlock" ? "UNLOCK" : "LOCK";
-    // Ждём ответ пульта внутри запроса (до REMOTE_SMS_CONFIRM_TIMEOUT_MS):
-    // отдельного канала для push-уведомления «замки сработали» у мобилки нет.
-    const result = await sendRemoteSms(booking.car.remotePhone, dbAction);
+    const text = smsTextFor(dbAction);
+    const result = await sendRemoteSms(booking.car.remotePhone, text);
 
     const record = await prisma.remoteCommand.create({
       data: {
@@ -74,19 +73,16 @@ export async function POST(
         userId: session.userId,
         action: dbAction,
         targetPhone: booking.car.remotePhone,
-        smsText: smsTextFor(dbAction),
+        smsText: text,
         providerId: result.providerId ?? null,
         ok: result.ok,
         error: result.error ?? null,
-        replyText: result.reply ?? null,
-        confirmedAt: result.confirmed ? new Date() : null,
       },
-      select: { id: true, createdAt: true, ok: true, confirmedAt: true },
+      select: { id: true, createdAt: true, ok: true },
     });
 
     return NextResponse.json({
       ok: record.ok,
-      confirmed: record.confirmedAt != null,
       action,
       createdAt: record.createdAt,
       id: record.id,
