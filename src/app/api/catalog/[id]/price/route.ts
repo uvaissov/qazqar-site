@@ -53,10 +53,10 @@ export async function GET(
     // Find car by id
     const car = await prisma.car.findUnique({
       where: { id },
-      select: { id: true, pricePerDay: true, deposit: true, status: true },
+      select: { id: true, pricePerDay: true, deposit: true, status: true, isArchived: true },
     });
 
-    if (!car || car.status !== "AVAILABLE") {
+    if (!car || car.isArchived || car.status !== "AVAILABLE") {
       return NextResponse.json(
         { error: "Car not found" },
         { status: 404 }

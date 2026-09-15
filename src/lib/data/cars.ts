@@ -38,7 +38,7 @@ export async function getCars(filters?: {
   dateTo?: string;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {};
+  const where: any = { isArchived: false };
   // Марка и модель живут в одном where.model — присваивать его дважды нельзя,
   // второй фильтр затёр бы первый. Собираем условие по частям.
   if (filters?.brandSlug || filters?.modelSlug) {
@@ -115,9 +115,10 @@ export async function getGroupedCars(filters?: Parameters<typeof getCars>[0]) {
   return grouped;
 }
 
+/** Публичная карточка: архивное (удалённое в CRM) авто отдаём как отсутствующее. */
 export async function getCarBySlug(slug: string) {
   return prisma.car.findUnique({
-    where: { slug },
+    where: { slug, isArchived: false },
     include: carInclude,
   });
 }
@@ -131,7 +132,7 @@ export async function getBrands() {
 
 export async function getSimilarCars(carId: string, modelId: string, limit = 3) {
   return prisma.car.findMany({
-    where: { modelId, id: { not: carId }, status: "AVAILABLE" },
+    where: { modelId, id: { not: carId }, status: "AVAILABLE", isArchived: false },
     include: carInclude,
     take: limit,
   });

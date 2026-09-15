@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {
       status: "AVAILABLE",
+      isArchived: false,
     };
 
     if (transmission) {

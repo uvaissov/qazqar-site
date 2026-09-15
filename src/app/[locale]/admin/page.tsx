@@ -12,8 +12,8 @@ async function getStats() {
     blogPosts,
     totalReviews,
   ] = await Promise.all([
-    prisma.car.count(),
-    prisma.car.count({ where: { status: "AVAILABLE" } }),
+    prisma.car.count({ where: { isArchived: false } }),
+    prisma.car.count({ where: { status: "AVAILABLE", isArchived: false } }),
     prisma.booking.count({ where: { status: "PENDING" } }),
     prisma.booking.count(),
     prisma.blogPost.count(),

@@ -13,6 +13,7 @@ interface CarWithModel {
   color: string;
   transmission: string;
   status: string;
+  isArchived: boolean;
   availableFrom: string | null;
   nextBookingAt: string | null;
   totalDistance: number;
@@ -70,6 +71,14 @@ export default function CarsList({ cars }: CarsListProps) {
       RENTED: t("rented"),
       MAINTENANCE: t("maintenance"),
     };
+
+    if (car.isArchived) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
+          {t("archived")}
+        </span>
+      );
+    }
 
     return (
       <div className="space-y-1">

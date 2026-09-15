@@ -86,9 +86,31 @@ async function syncInventories() {
     carsUpserted++;
   }
 
+  // CRM удаляет авто мягко (deleted/disabled) и перестаёт отдавать его в
+  // выборке — локальная запись без этого шага жила бы в каталоге вечно.
+  // Пустой ответ считаем сбоем API, а не «весь парк удалили». Авто, заведённые
+  // вручную в админке (inventoryId = 0, см. CarForm.isApiCar), не трогаем.
+  let archived = 0;
+  if (inventories.length > 0) {
+    const activeIds = inventories.map((inv) => inv.id);
+    const [archivedRes] = await Promise.all([
+      prisma.car.updateMany({
+        where: { inventoryId: { notIn: activeIds, gt: 0 }, isArchived: false },
+        data: { isArchived: true },
+      }),
+      prisma.car.updateMany({
+        where: { inventoryId: { in: activeIds }, isArchived: true },
+        data: { isArchived: false },
+      }),
+    ]);
+    archived = archivedRes.count;
+  }
+
   const elapsed = Date.now() - start;
   g.__syncInventoryLastAt = new Date();
-  console.log(`[Sync] Inventories done in ${elapsed}ms: ${carsUpserted} cars`);
+  console.log(
+    `[Sync] Inventories done in ${elapsed}ms: ${carsUpserted} cars${archived ? `, ${archived} archived` : ""}`,
+  );
   return carsUpserted;
 }
 

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       where: { id: carId },
       include: { model: { include: { brand: true } } },
     });
-    if (!car) {
+    if (!car || car.isArchived) {
       return NextResponse.json(
         { error: "Car not found" },
         { status: 400 }

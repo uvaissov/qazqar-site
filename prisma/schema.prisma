@@ -73,6 +73,9 @@ model Car {
   vin           String?
   deposit       Int          @default(0)
   hasRemote     Boolean      @default(false)
+  /// Авто удалено/отключено в Yume CRM (пропало из ответа синка инвентаря).
+  /// Запись не удаляем — на неё ссылаются бронирования; из витрины скрываем.
+  isArchived    Boolean      @default(false)
   remotePhone   String?
   bookings      Booking[]
   photos        CarPhoto[]

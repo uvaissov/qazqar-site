@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const models = await prisma.carModel.findMany({
       where: {
         ...(brandSlug ? { brand: { slug: brandSlug } } : {}),
-        ...(all ? {} : { cars: { some: {} } }),
+        ...(all ? {} : { cars: { some: { isArchived: false } } }),
       },
       orderBy: { name: "asc" },
       select: {
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         name: true,
         slug: true,
         brand: { select: { id: true, name: true, slug: true } },
-        _count: { select: { cars: true } },
+        _count: { select: { cars: { where: { isArchived: false } } } },
       },
     });
 

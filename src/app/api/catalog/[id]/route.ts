@@ -40,11 +40,15 @@ export async function GET(
         },
       });
 
-      if (!bySlug) {
+      if (!bySlug || bySlug.isArchived) {
         return NextResponse.json({ error: "Car not found" }, { status: 404 });
       }
 
       return NextResponse.json(formatCar(bySlug));
+    }
+
+    if (car.isArchived) {
+      return NextResponse.json({ error: "Car not found" }, { status: 404 });
     }
 
     return NextResponse.json(formatCar(car));

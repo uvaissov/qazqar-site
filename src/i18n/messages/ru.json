@@ -327,6 +327,7 @@
     "available": "Доступен",
     "rented": "В аренде",
     "maintenance": "На ТО",
+    "archived": "Удалено в CRM",
     "photo": "Фото",
     "name": "Название",
     "mileage": "Пробег",

@@ -10,7 +10,7 @@ export default async function AdminCarsPage() {
 
   const cars = await prisma.car.findMany({
     include: { model: { include: { brand: true } }, photos: { include: { photo: true }, orderBy: { sortOrder: "asc" } } },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ isArchived: "asc" }, { createdAt: "desc" }],
   });
 
   return (

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [cars, blogPosts] = await Promise.all([
     prisma.car.findMany({
-      where: { status: "AVAILABLE" },
+      where: { status: "AVAILABLE", isArchived: false },
       select: { slug: true, updatedAt: true },
     }),
     prisma.blogPost.findMany({
