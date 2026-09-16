@@ -251,6 +251,8 @@ export async function syncUserBookings(userId: string): Promise<number> {
         requestId: req.id,
         userId: user.id,
         carId: car.id,
+        // Заявки нет в локальной БД — значит, её завели в CRM, не с сайта/мобилки.
+        source: "CRM",
         startDate: new Date(req.rent_start),
         endDate: new Date(req.rent_end),
         totalPrice: Math.round(parseFloat(req.price)),

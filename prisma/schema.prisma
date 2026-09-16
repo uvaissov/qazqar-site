@@ -120,6 +120,9 @@ model Booking {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   cancellationReason String?
+  /// Откуда пришла заявка: сайт, мобильное приложение или заведена в CRM
+  /// (подтянута синком). Определяется на бэке по запросу, клиент не диктует.
+  source             BookingSource   @default(SITE)
   documents          Json?
   // Момент последнего похода в CRM за документами этой заявки. Используется как
   // атомарный захват: параллельный синк не полезет генерировать документы и
@@ -268,6 +271,12 @@ enum BookingStatus {
   RETURN_PENDING
   COMPLETED
   CANCELLED
+}
+
+enum BookingSource {
+  SITE
+  MOBILE
+  CRM
 }
 
 enum RemoteAction {

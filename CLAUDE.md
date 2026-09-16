@@ -32,7 +32,7 @@ src/
 
 - **User** — роли CLIENT/ADMIN
 - **CarBrand** → **CarModel** → **Car** — каталог авто (статусы: AVAILABLE/RENTED/MAINTENANCE)
-- **Booking** — заявки на аренду (PENDING → CONFIRMED → ACTIVE → COMPLETED/CANCELLED)
+- **Booking** — заявки на аренду (PENDING → CONFIRMED → ACTIVE → COMPLETED/CANCELLED). `source` — откуда пришла: `SITE` / `MOBILE` (определяется на бэке по заголовку `X-Client-Platform` или UA, см. `src/lib/booking-source.ts`) / `CRM` (подтянута синком). Уходит в комментарий CRM, Telegram и фильтр в `/admin/bookings`.
 - **BlogPost**, **Review**, **Discount**, **FaqItem** — контент
 
 ## Интеграция с Yume Cloud CRM API

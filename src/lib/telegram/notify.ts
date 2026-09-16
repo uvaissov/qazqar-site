@@ -12,6 +12,9 @@
 //   TELEGRAM_CHAT_ID     — id чата/группы, куда слать (можно с минусом для групп)
 //   TELEGRAM_TIMEOUT_MS  — таймаут запроса (default 8000)
 
+import type { BookingSource } from "@/generated/prisma/enums";
+import { BOOKING_SOURCE_LABELS } from "@/lib/booking-source";
+
 export type TelegramResult = {
   ok: boolean;
   error?: string;
@@ -118,12 +121,16 @@ export type NewBookingNotice = {
   endDate: Date;
   totalPrice: number;
   withDeposit: boolean;
+  source: BookingSource;
   comment?: string | null;
 };
+
+const SOURCE_ICONS: Record<BookingSource, string> = { SITE: "🌐", MOBILE: "📱", CRM: "🗂" };
 
 export function notifyNewBooking(n: NewBookingNotice): Promise<TelegramResult> {
   const lines = [
     "🆕 <b>Новая заявка</b>",
+    `${SOURCE_ICONS[n.source]} ${BOOKING_SOURCE_LABELS[n.source]}`,
     `🚗 ${escapeHtml(n.carLabel)}`,
     `👤 ${escapeHtml(n.customerName)}`,
     `📞 ${escapeHtml(n.customerPhone)}`,

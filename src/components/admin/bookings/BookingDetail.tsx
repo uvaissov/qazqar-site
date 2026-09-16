@@ -18,6 +18,7 @@ interface BookingWithCar {
   totalPrice: number;
   discountPercent: number;
   status: string;
+  source: string;
   comment: string | null;
   depositAmount: number | null;
   depositLabel: string | null;
@@ -244,6 +245,18 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
                   {t("phone")}
                 </label>
                 <p className="mt-1 text-gray-900">{formatPhone(booking.customerPhone)}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  {t("source")}
+                </label>
+                <p className="mt-1 text-gray-900">
+                  {booking.source === "SITE"
+                    ? t("sourceSite")
+                    : booking.source === "MOBILE"
+                      ? t("sourceMobile")
+                      : t("sourceCrm")}
+                </p>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-400 uppercase tracking-wider">

@@ -18,6 +18,7 @@ interface BookingWithCar {
   totalPrice: number;
   discountPercent: number;
   status: string;
+  source: string;
   comment: string | null;
   createdAt: string;
   car: {
@@ -42,11 +43,33 @@ interface StatusCounts {
   CANCELLED: number;
 }
 
+interface SourceCounts {
+  all: number;
+  SITE: number;
+  MOBILE: number;
+  CRM: number;
+}
+
 interface BookingsListProps {
   bookings: BookingWithCar[];
   counts: StatusCounts;
   currentStatus: string | null;
+  sourceCounts: SourceCounts;
+  currentSource: string | null;
 }
+
+const SOURCE_TABS = [
+  { key: "sourceAll", value: null },
+  { key: "sourceSite", value: "SITE" },
+  { key: "sourceMobile", value: "MOBILE" },
+  { key: "sourceCrm", value: "CRM" },
+] as const;
+
+const SOURCE_BADGE_STYLES: Record<string, string> = {
+  SITE: "bg-indigo-50 text-indigo-700",
+  MOBILE: "bg-emerald-50 text-emerald-700",
+  CRM: "bg-gray-100 text-gray-600",
+};
 
 const STATUS_TABS = [
   { key: "all", value: null },
@@ -71,6 +94,8 @@ export default function BookingsList({
   bookings,
   counts,
   currentStatus,
+  sourceCounts,
+  currentSource,
 }: BookingsListProps) {
   const t = useTranslations("adminBookings");
   const locale = useLocale();
@@ -79,15 +104,16 @@ export default function BookingsList({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const handleTabClick = (statusValue: string | null) => {
+  const setFilter = (name: "status" | "source", value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (statusValue) {
-      params.set("status", statusValue);
+    if (value) {
+      params.set(name, value);
     } else {
-      params.delete("status");
+      params.delete(name);
     }
     router.push(`${pathname}?${params.toString()}`);
   };
+  const handleTabClick = (statusValue: string | null) => setFilter("status", statusValue);
 
   const getCountForTab = (tab: (typeof STATUS_TABS)[number]) => {
     if (tab.value === null) return counts.all;
@@ -104,6 +130,15 @@ export default function BookingsList({
       CANCELLED: t("cancelled"),
     };
     return labels[status] || status;
+  };
+
+  const sourceLabel = (source: string) => {
+    const labels: Record<string, string> = {
+      SITE: t("sourceSite"),
+      MOBILE: t("sourceMobile"),
+      CRM: t("sourceCrm"),
+    };
+    return labels[source] || source;
   };
 
   const formatDate = (dateStr: string) => {
@@ -140,6 +175,29 @@ export default function BookingsList({
               >
                 {getCountForTab(tab)}
               </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Source filter */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <span className="text-sm text-gray-500 mr-1">{t("source")}:</span>
+        {SOURCE_TABS.map((tab) => {
+          const isActive = currentSource === tab.value;
+          const count = tab.value === null ? sourceCounts.all : sourceCounts[tab.value];
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setFilter("source", tab.value)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+                isActive
+                  ? "bg-gray-800 text-white"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+              }`}
+            >
+              {t(tab.key)}
+              <span className={isActive ? "text-white/70" : "text-gray-400"}>{count}</span>
             </button>
           );
         })}
@@ -188,6 +246,9 @@ export default function BookingsList({
                     {t("status")}
                   </th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">
+                    {t("source")}
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">
                     {t("created")}
                   </th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">
@@ -229,6 +290,15 @@ export default function BookingsList({
                         }`}
                       >
                         {statusLabel(booking.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          SOURCE_BADGE_STYLES[booking.source] || "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {sourceLabel(booking.source)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">

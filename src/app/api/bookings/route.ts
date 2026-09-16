@@ -4,6 +4,7 @@ import { verifyOtp } from "@/lib/otp";
 import { yumeApi, YumeApiError } from "@/lib/yume/api";
 import { BookingStatus } from "@/generated/prisma/enums";
 import { notifyNewBooking } from "@/lib/telegram/notify";
+import { detectBookingSource, BOOKING_SOURCE_LABELS } from "@/lib/booking-source";
 import { normalizePhone } from "@/lib/phone";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
@@ -14,6 +15,7 @@ class BookingConflictError extends Error {}
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const source = detectBookingSource(request);
     const { carId, customerName, customerPhone: rawCustomerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment, pickupAddressId, returnAddressId, withDeposit } = body;
 
     if (!carId || !customerName || !rawCustomerPhone || !startDate || !endDate) {
@@ -134,8 +136,8 @@ export async function POST(request: Request) {
       returnAddressName = addr?.name ?? null;
     }
 
-    // Build CRM comment with addresses
-    const crmCommentParts: string[] = [];
+    // Build CRM comment: источник заявки + адреса
+    const crmCommentParts: string[] = [`Источник: ${BOOKING_SOURCE_LABELS[source]}`];
     if (pickupAddressName) crmCommentParts.push(`Адрес подачи: ${pickupAddressName}`);
     if (returnAddressName) crmCommentParts.push(`Адрес возврата: ${returnAddressName}`);
 
@@ -281,6 +283,7 @@ export async function POST(request: Request) {
               ? (withDeposit === false ? `Без депозита (надбавка ${noDepositSurcharge.toLocaleString()} ₸)` : `Депозит ${depositAmount.toLocaleString()} ₸`)
               : null,
             status: "PENDING",
+            source,
             comment: comment || null,
             userId,
             requestId,
@@ -307,6 +310,7 @@ export async function POST(request: Request) {
       endDate: end,
       totalPrice: booking.totalPrice,
       withDeposit: booking.withDeposit,
+      source,
       comment,
     });
 
