@@ -180,12 +180,18 @@ export async function POST(request: Request) {
       const crmStart = startDate;
       const crmEnd = endDate;
 
+      // Заявка в CRM создаётся без авто, машина привязывается вторым вызовом.
+      // Если второй шаг упал, пустую заявку надо отменить — иначе в CRM
+      // копятся заявки без авто (как #2728 после смены роутов 16.09.2026),
+      // а менеджер видит их как «созданные».
+      let orphanRequestId: number | undefined;
       try {
         const yumeRequest = await yumeApi.createRequest({
           client: user.clientId,
           rent_start: crmStart,
           rent_end: crmEnd,
         });
+        orphanRequestId = yumeRequest.id;
 
         await yumeApi.attachInventory(yumeRequest.id, {
           inventory: car.inventoryId,
@@ -193,6 +199,7 @@ export async function POST(request: Request) {
           start_at: crmStart,
           end_at: crmEnd,
         });
+        orphanRequestId = undefined;
 
         await yumeApi.saveRequest(yumeRequest.id, {
           rent_start: crmStart,
@@ -229,6 +236,11 @@ export async function POST(request: Request) {
           (err instanceof YumeApiError && err.status === 409) ||
           message.includes("конфликт") ||
           message.includes("schedule");
+        if (orphanRequestId) {
+          await yumeApi
+            .cancelRequest(orphanRequestId)
+            .catch((e) => console.error(`[Yume] Failed to cancel orphan request #${orphanRequestId}:`, e));
+        }
         if (isConflict) {
           return NextResponse.json({ error: "DATE_CONFLICT" }, { status: 409 });
         }

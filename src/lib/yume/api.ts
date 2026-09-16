@@ -260,10 +260,15 @@ class YumeApi {
     start_at: string;
     end_at: string;
   }): Promise<unknown> {
+    // Роут плоский: заявка передаётся верхним полем `request` (в элементе
+    // CRM её не ищет — отвечает «Аренда не найдена»). Вложенный
+    // /requests/{id}/inventories/… CRM убрала 16.09.2026 без предупреждения —
+    // с утра все заявки создавались без авто в CRM.
     return this.request<unknown>(
       "POST",
-      `/v1/crm/requests/${requestId}/inventories/bulk_create/`,
+      `/v1/crm/requests/inventories/bulk_create/?request=${requestId}`,
       {
+        request: requestId,
         inventories: [{
           type: 0,
           inventory: data.inventory,
@@ -272,6 +277,48 @@ class YumeApi {
           tarif_duration: 86400,
           start_at: data.start_at,
           end_at: data.end_at,
+        }],
+      }
+    );
+  }
+
+  /**
+   * Привязки авто к заявке: GET /v1/crm/requests/inventories/?request={id}.
+   * Отдаёт полный объект inventory (в отличие от `inventories` в списке
+   * заявок, где только id) — нужен `id` привязки для bulk_update.
+   */
+  async getRequestInventories(requestId: number): Promise<YumeRequestInventoryLink[]> {
+    return this.request<YumeRequestInventoryLink[]>(
+      "GET",
+      `/v1/crm/requests/inventories/?request=${requestId}`
+    );
+  }
+
+  /**
+   * Заменить авто в существующей привязке, не трогая тариф и даты.
+   * Схема payload выведена по ошибкам валидации CRM: обязательны
+   * `id`, `tarif`, `start_at`, `end_at`; поле авто — `inventory`, как в
+   * bulk_create. Используется при смене машины клиентом в PENDING-заявке.
+   */
+  async replaceRequestInventory(
+    requestId: number,
+    link: YumeRequestInventoryLink,
+    newInventoryId: number
+  ): Promise<unknown> {
+    return this.request<unknown>(
+      "POST",
+      `/v1/crm/requests/inventories/bulk_update/?request=${requestId}`,
+      {
+        request: requestId,
+        inventories: [{
+          id: link.id,
+          type: link.type ?? 0,
+          inventory: newInventoryId,
+          tarif: link.tarif ?? null,
+          tarif_price: link.tarif_price,
+          tarif_duration: link.tarif_duration ?? 86400,
+          start_at: link.start_at,
+          end_at: link.end_at,
         }],
       }
     );
@@ -631,6 +678,23 @@ export type YumeRequestInventory = {
   image: string | null;
   started: boolean;
   returned: boolean;
+};
+
+/** Элемент GET /v1/crm/requests/{id}/inventories/ (привязка авто к заявке). */
+export type YumeRequestInventoryLink = {
+  id: number;
+  request: number;
+  type?: number;
+  inventory: {
+    id: number;
+    name: string;
+    car: YumeInventoryCar;
+  };
+  tarif: number | null;
+  tarif_price: string;
+  tarif_duration?: number | string;
+  start_at: string;
+  end_at: string;
 };
 
 export type YumeRequest = {
