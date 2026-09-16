@@ -1,27 +1,32 @@
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getAlternativeCars } from "@/lib/data/booking-alternatives";
-import { getOwnedBooking } from "@/lib/data/owned-booking";
+import { CAR_CHANGEABLE_STATUSES } from "@/lib/data/change-booking-car";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Свободные машины той же группы (модель/год/цвет/цена), на которые клиент
- * может поменять авто в заявке. Только для PENDING — как и отмена.
+ * Свободные машины той же группы (модель/год/цвет/цена), на которые
+ * менеджер может поменять авто в заявке клиента.
  */
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSession();
-  if (!session) {
+  try {
+    await requireAdmin();
+  } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
-  const booking = await getOwnedBooking(session.userId, id);
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: { car: true },
+  });
   if (!booking) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
-  if (booking.status !== "PENDING") {
+  if (!CAR_CHANGEABLE_STATUSES.includes(booking.status)) {
     return NextResponse.json({ error: "Cannot change" }, { status: 400 });
   }
 

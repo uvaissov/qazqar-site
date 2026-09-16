@@ -63,7 +63,8 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 | Гараж (активные авто) | GET | `/v1/crm/inventories/?disabled=false&free=false&has_sublease=false&mode=inventory` | — |
 | Добавление авто | POST | `/v1/crm/inventories/` | [inventories_create](https://api.yume.cloud/crm/main/docs/swagger/#/inventories/inventories_create) |
 | Создание заявки | POST | `/v1/crm/requests/` | [orders_create](https://api.yume.cloud/crm/orders/docs/swagger/#/default/root_create) |
-| Привязка авто к заявке | POST | `/v1/crm/requests/{id}/inventories/bulk_create/` | — |
+| Привязка авто к заявке | POST | `/v1/crm/requests/inventories/bulk_create/` (заявка — верхним полем `request`) | — |
+| Авто в заявке / замена | GET / POST | `/v1/crm/requests/inventories/?request={id}` / `…/inventories/bulk_update/` | — |
 | Сохранение заявки | PATCH | `/v1/crm/requests/{id}/` | — |
 | Генерация документа | POST | `/v2/documents/` | [document_create](https://api.yume.cloud/crm/document/docs/swagger/#/default/root_create) |
 | Расписание авто | GET | `/v1/crm/inventories/schedules/?start_at=YYYY-MM-DD&end_at=YYYY-MM-DD&disabled=false` | — |
@@ -96,7 +97,7 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 2. **Поиск/создание клиента** по телефону (`phone__exact`)
 3. **Поиск авто** — `GET /v1/crm/inventories/?search=` (ищет по названию, техпаспорту, номеру)
 4. **Создание заявки** — `POST /v1/crm/requests/` с `{client, rent_start, rent_end}`
-5. **Привязка авто** — `POST /v1/crm/requests/{id}/inventories/bulk_create/` с `{inventory, tarif_price, tarif_duration: 86400, start_at, end_at}`
+5. **Привязка авто** — `POST /v1/crm/requests/inventories/bulk_create/` с `{request, inventories: [{inventory, tarif_price, tarif_duration: 86400, start_at, end_at}]}`. **Внимание:** до 16.09.2026 роут был вложенным (`/requests/{id}/inventories/…`) — CRM убрала его без предупреждения; вложенный путь теперь отдаёт HTML 404
 6. **Сохранение** — `PATCH /v1/crm/requests/{id}/`
 7. **Генерация документа** — `POST /v2/documents/` с `{object_id, content_type: "orderrequest", template}`
 
@@ -107,6 +108,10 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 | 160 | Договор аренды |
 | 161 | Акт приема передачи |
 | 162 | Путевой лист |
+
+### Смена автомобиля в заявке (админка)
+
+`/admin/bookings/[id]` → «Сменить автомобиль» (только `PENDING`/`CONFIRMED`, см. `CAR_CHANGEABLE_STATUSES`). Кандидаты — `getAlternativeCars` (`src/lib/data/booking-alternatives.ts`): та же группа (модель/год/цвет/цена, как группировка каталога), свободны по локальным броням **и** по расписанию CRM. Замена — `changeBookingCar` (`src/lib/data/change-booking-car.ts`): сначала `bulk_update` в CRM + комментарий, потом локальный `carId` под advisory lock. `syncUserBookings` обновляет `carId` из CRM, так что смена машины менеджером в самой CRM тоже доезжает до кабинета и мобилки.
 
 ## Поиск клиента в CRM (важно)
 
