@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
@@ -11,7 +11,7 @@ const MAX_PAGE_SIZE = 100;
 // status=errors → только неуспешные отправки.
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireSection("bookings");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

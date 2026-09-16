@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { canAccess, isStaffRole, type AdminSection } from "@/lib/permissions";
 import { cookies } from "next/headers";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -80,9 +81,32 @@ export async function getSession(): Promise<JWTPayload | null> {
   return null;
 }
 
+/** Только ADMIN. Для секций, доступных и менеджеру, — requireSection(). */
 export async function requireAdmin(): Promise<JWTPayload> {
   const session = await getSession();
   if (!session || session.role !== "ADMIN") {
+    throw new Error("Unauthorized");
+  }
+  return session;
+}
+
+/** Любой сотрудник (MANAGER или ADMIN) — layout админки, дашборд. */
+export async function requireStaff(): Promise<JWTPayload> {
+  const session = await getSession();
+  if (!session || !isStaffRole(session.role)) {
+    throw new Error("Unauthorized");
+  }
+  return session;
+}
+
+/**
+ * Доступ к секции админки по роли (см. src/lib/permissions.ts).
+ * Роуты API под /api/admin/* используют её вместо requireAdmin(), чтобы
+ * менеджер работал с заявками/пользователями/контентом, но не с тарифами.
+ */
+export async function requireSection(section: AdminSection): Promise<JWTPayload> {
+  const session = await getSession();
+  if (!session || !canAccess(session.role, section)) {
     throw new Error("Unauthorized");
   }
   return session;

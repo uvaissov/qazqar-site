@@ -258,6 +258,8 @@
     "currency": "₸"
   },
   "admin": {
+    "roleAdmin": "Администратор",
+    "roleManager": "Менеджер",
     "dashboard": "Дашборд",
     "cars": "Автомобили",
     "brands": "Марки/Модели",
@@ -524,6 +526,16 @@
     "noHistoryBookings": "История бронирований пуста"
   },
   "adminUsers": {
+    "addStaff": "Добавить сотрудника",
+    "staffFirstName": "Имя",
+    "staffLastName": "Фамилия",
+    "staffPassword": "Пароль (мин. 8 символов)",
+    "staffCreate": "Создать",
+    "roleManager": "Менеджер",
+    "roleAdmin": "Администратор",
+    "staffEmailExists": "Пользователь с таким email уже есть",
+    "staffWeakPassword": "Пароль короче 8 символов",
+    "staffInvalidEmail": "Некорректный email",
     "title": "Пользователи",
     "total": "Всего",
     "name": "Имя",

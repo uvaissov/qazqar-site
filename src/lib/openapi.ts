@@ -42,7 +42,7 @@ export const openApiSpec = {
           email: { type: "string", format: "email" },
           firstName: { type: "string" },
           lastName: { type: "string" },
-          role: { type: "string", enum: ["CLIENT", "ADMIN"] },
+          role: { type: "string", enum: ["CLIENT", "MANAGER", "ADMIN"] },
         },
       },
       Car: {

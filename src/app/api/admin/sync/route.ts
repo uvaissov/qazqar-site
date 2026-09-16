@@ -1,11 +1,11 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { getSyncStatus, syncCars } from "@/lib/yume/sync";
 import { NextResponse } from "next/server";
 
 // GET — sync status
 export async function GET() {
   try {
-    await requireAdmin();
+    await requireSection("cars");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -16,7 +16,7 @@ export async function GET() {
 // POST — force sync
 export async function POST() {
   try {
-    await requireAdmin();
+    await requireSection("cars");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

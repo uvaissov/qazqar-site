@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { yumeApi } from "@/lib/yume/api";
 import { NextResponse } from "next/server";
 
@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireSection("users");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

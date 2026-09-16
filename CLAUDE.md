@@ -30,10 +30,24 @@ src/
 
 ## Модели данных
 
-- **User** — роли CLIENT/ADMIN
+- **User** — роли `CLIENT` / `MANAGER` / `ADMIN` (см. «Ролевая модель» ниже)
 - **CarBrand** → **CarModel** → **Car** — каталог авто (статусы: AVAILABLE/RENTED/MAINTENANCE)
 - **Booking** — заявки на аренду (PENDING → CONFIRMED → ACTIVE → COMPLETED/CANCELLED). `source` — откуда пришла: `SITE` / `MOBILE` (определяется на бэке по заголовку `X-Client-Platform` или UA, см. `src/lib/booking-source.ts`) / `CRM` (подтянута синком). Уходит в комментарий CRM, Telegram и фильтр в `/admin/bookings`.
 - **BlogPost**, **Review**, **Discount**, **FaqItem** — контент
+
+## Ролевая модель админки
+
+Права заданы по **секциям** в `src/lib/permissions.ts` — единственный источник для middleware (страницы `/admin/*`), `requireSection()` в API и фильтра пунктов сайдбара.
+
+| Секция | MANAGER | ADMIN | Что входит |
+|---|---|---|---|
+| dashboard, bookings, users, content, smsLog, cars | ✔ | ✔ | заявки (в т.ч. смена авто, пульт), пользователи (просмотр, привязка к CRM), блог/FAQ/отзывы/баннеры/медиа, журнал SMS, автопарк (авто, марки/модели, синк с CRM) |
+| discounts, surcharges, settings, staff | — | ✔ | скидки, надбавки, настройки/адреса/MinIO, создание сотрудников и роли |
+
+- В API: `requireSection("bookings")` для менеджерских роутов, `requireAdmin()` — только админ. Новый роут под `/api/admin/*` **обязан** вызывать одно из двух.
+- Клиенты регистрируются сами. Сотрудников (MANAGER/ADMIN) создаёт только админ: `POST /api/admin/users` `{firstName, lastName, email, password, role}`; роли меняет `PATCH /api/admin/users/[id]` — тоже только админ, свою роль менять нельзя.
+- Менеджер в разделе «Пользователи» видит список и привязку к CRM; смена ролей, удаление и создание ему не показываются и на бэке закрыты.
+- Менеджера, зашедшего в чужую секцию по URL, middleware отправляет на `/admin` (не на логин — он авторизован).
 
 ## Интеграция с Yume Cloud CRM API
 

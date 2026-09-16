@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { changeBookingCar, CAR_CHANGEABLE_STATUSES } from "@/lib/data/change-booking-car";
 import { NextRequest, NextResponse } from "next/server";
@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireSection("bookings");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

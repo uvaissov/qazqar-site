@@ -45,15 +45,54 @@ type User = {
 
 const roleBadge: Record<string, string> = {
   ADMIN: "bg-purple-100 text-purple-800",
+  MANAGER: "bg-emerald-100 text-emerald-800",
   CLIENT: "bg-blue-100 text-blue-800",
 };
 
-export default function UsersList({ users }: { users: User[] }) {
+const EMPTY_STAFF_FORM = { firstName: "", lastName: "", email: "", password: "", role: "MANAGER" };
+
+/**
+ * [canManageRoles] — только у админа: создание сотрудников, смена ролей,
+ * удаление. Менеджеру остаётся просмотр и привязка к CRM.
+ */
+export default function UsersList({ users, canManageRoles }: { users: User[]; canManageRoles: boolean }) {
   const t = useTranslations("adminUsers");
   const locale = useLocale();
   const router = useRouter();
   const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
   const [loading, setLoading] = useState<string | null>(null);
+  const [staffModal, setStaffModal] = useState(false);
+  const [staffForm, setStaffForm] = useState(EMPTY_STAFF_FORM);
+  const [staffError, setStaffError] = useState<string | null>(null);
+  const [staffSaving, setStaffSaving] = useState(false);
+
+  async function handleCreateStaff(e: React.FormEvent) {
+    e.preventDefault();
+    setStaffSaving(true);
+    setStaffError(null);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(staffForm),
+      });
+      if (res.ok) {
+        setStaffModal(false);
+        setStaffForm(EMPTY_STAFF_FORM);
+        router.refresh();
+        return;
+      }
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const known: Record<string, string> = {
+        EMAIL_EXISTS: t("staffEmailExists"),
+        WEAK_PASSWORD: t("staffWeakPassword"),
+        INVALID_EMAIL: t("staffInvalidEmail"),
+      };
+      setStaffError((data.error && known[data.error]) || t("error"));
+    } finally {
+      setStaffSaving(false);
+    }
+  }
   const [linkModal, setLinkModal] = useState<{ userId: string; candidates: CrmCandidate[] } | null>(null);
   const [clientCard, setClientCard] = useState<{ userId: string; data: CrmClientDetail } | null>(null);
 
@@ -153,15 +192,106 @@ export default function UsersList({ users }: { users: User[] }) {
     }
   }
 
+  const staffModalNode = staffModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => !staffSaving && setStaffModal(false)}>
+      <form
+        onSubmit={handleCreateStaff}
+        className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="mb-4 text-lg font-semibold text-gray-900">{t("addStaff")}</h3>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              required
+              value={staffForm.firstName}
+              onChange={(e) => setStaffForm({ ...staffForm, firstName: e.target.value })}
+              placeholder={t("staffFirstName")}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
+            />
+            <input
+              value={staffForm.lastName}
+              onChange={(e) => setStaffForm({ ...staffForm, lastName: e.target.value })}
+              placeholder={t("staffLastName")}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
+            />
+          </div>
+          <input
+            required
+            type="email"
+            value={staffForm.email}
+            onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+            placeholder="Email"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
+          />
+          <input
+            required
+            type="password"
+            minLength={8}
+            value={staffForm.password}
+            onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
+            placeholder={t("staffPassword")}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
+          />
+          <select
+            value={staffForm.role}
+            onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none"
+          >
+            <option value="MANAGER">{t("roleManager")}</option>
+            <option value="ADMIN">{t("roleAdmin")}</option>
+          </select>
+        </div>
+        {staffError && (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{staffError}</p>
+        )}
+        <div className="mt-5 flex gap-3">
+          <button
+            type="button"
+            onClick={() => setStaffModal(false)}
+            disabled={staffSaving}
+            className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {t("cancel")}
+          </button>
+          <button
+            type="submit"
+            disabled={staffSaving}
+            className="flex-1 rounded-lg bg-cyan-600 py-2.5 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+          >
+            {staffSaving ? "..." : t("staffCreate")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  const addStaffButton = canManageRoles && (
+    <div className="mb-4 flex justify-end">
+      <button
+        onClick={() => { setStaffForm(EMPTY_STAFF_FORM); setStaffError(null); setStaffModal(true); }}
+        className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700"
+      >
+        + {t("addStaff")}
+      </button>
+    </div>
+  );
+
   if (users.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-        <p className="text-gray-500">{t("empty")}</p>
+      <div>
+        {addStaffButton}
+        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">{t("empty")}</p>
+        </div>
+        {staffModalNode}
       </div>
     );
   }
 
   return (
+    <div>
+    {addStaffButton}
     <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
       <table className="w-full text-sm">
         <thead>
@@ -211,7 +341,7 @@ export default function UsersList({ users }: { users: User[] }) {
                 </span>
               </td>
               <td className="px-4 py-3">
-                {user.role === "ADMIN" ? (
+                {user.role !== "CLIENT" ? (
                   <span className="text-xs text-gray-400">—</span>
                 ) : user.clientId ? (
                   <button
@@ -238,6 +368,9 @@ export default function UsersList({ users }: { users: User[] }) {
                 {new Date(user.createdAt).toLocaleDateString(dateLocale)}
               </td>
               <td className="px-4 py-3">
+                {!canManageRoles ? (
+                  <span className="text-xs text-gray-400">—</span>
+                ) : (
                 <div className="flex items-center gap-2">
                   <select
                     value={user.role}
@@ -246,6 +379,7 @@ export default function UsersList({ users }: { users: User[] }) {
                     className="rounded border border-gray-300 px-2 py-1 text-xs disabled:opacity-50"
                   >
                     <option value="CLIENT">CLIENT</option>
+                    <option value="MANAGER">MANAGER</option>
                     <option value="ADMIN">ADMIN</option>
                   </select>
                   <button
@@ -261,6 +395,7 @@ export default function UsersList({ users }: { users: User[] }) {
                     {t("delete")}
                   </button>
                 </div>
+                )}
               </td>
             </tr>
           ))}
@@ -395,6 +530,8 @@ export default function UsersList({ users }: { users: User[] }) {
           </div>
         </div>
       )}
+    </div>
+    {staffModalNode}
     </div>
   );
 }

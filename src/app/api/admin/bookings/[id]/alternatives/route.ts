@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAlternativeCars } from "@/lib/data/booking-alternatives";
 import { CAR_CHANGEABLE_STATUSES } from "@/lib/data/change-booking-car";
@@ -13,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireSection("bookings");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

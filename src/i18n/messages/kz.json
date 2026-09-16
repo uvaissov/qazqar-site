@@ -258,6 +258,8 @@
     "currency": "₸"
   },
   "admin": {
+    "roleAdmin": "Администратор",
+    "roleManager": "Менеджер",
     "dashboard": "Басқару тақтасы",
     "cars": "Автокөліктер",
     "brands": "Маркалар/Модельдер",
@@ -524,6 +526,16 @@
     "noHistoryBookings": "Брондау тарихы бос"
   },
   "adminUsers": {
+    "addStaff": "Қызметкер қосу",
+    "staffFirstName": "Аты",
+    "staffLastName": "Тегі",
+    "staffPassword": "Құпиясөз (кем дегенде 8 таңба)",
+    "staffCreate": "Жасау",
+    "roleManager": "Менеджер",
+    "roleAdmin": "Администратор",
+    "staffEmailExists": "Мұндай email-мен пайдаланушы бар",
+    "staffWeakPassword": "Құпиясөз 8 таңбадан қысқа",
+    "staffInvalidEmail": "Email дұрыс емес",
     "title": "Пайдаланушылар",
     "total": "Барлығы",
     "name": "Аты",

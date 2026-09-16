@@ -1,10 +1,10 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { uploadFile } from "@/lib/minio";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireSection("content");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -1,10 +1,10 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import UsersList from "@/components/admin/users/UsersList";
 
 export default async function AdminUsersPage() {
-  await requireAdmin();
+  const session = await requireSection("users");
   const t = await getTranslations("adminUsers");
 
   const users = await prisma.user.findMany({
@@ -36,7 +36,7 @@ export default async function AdminUsersPage() {
           {t("total")}: {users.length}
         </span>
       </div>
-      <UsersList users={serialized} />
+      <UsersList users={serialized} canManageRoles={session.role === "ADMIN"} />
     </div>
   );
 }

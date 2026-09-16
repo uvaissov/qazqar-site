@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import type { DashboardBooking } from "@/components/admin/types";
@@ -7,7 +7,7 @@ const LIMIT = 50;
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requireSection("dashboard");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

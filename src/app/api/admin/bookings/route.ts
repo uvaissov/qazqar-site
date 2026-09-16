@@ -1,11 +1,11 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BookingStatus } from "@/generated/prisma/enums";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin();
+    await requireSection("bookings");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

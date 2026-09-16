@@ -36,7 +36,7 @@ export default function LoginForm() {
   const loginSuccess = useCallback(
     (data: { user: { role: string } }) => {
       window.dispatchEvent(new Event("auth-changed"));
-      router.push(data.user.role === "ADMIN" ? "/admin" : "/cabinet");
+      router.push(["ADMIN", "MANAGER"].includes(data.user.role) ? "/admin" : "/cabinet");
     },
     [router]
   );

@@ -2,6 +2,25 @@
 
 import { usePathname, Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { canAccess, type AdminSection } from "@/lib/permissions";
+
+/** Пункт меню → секция прав (src/lib/permissions.ts). */
+const NAV_SECTIONS: Record<string, AdminSection> = {
+  dashboard: "dashboard",
+  cars: "cars",
+  brands: "cars",
+  bookings: "bookings",
+  users: "users",
+  blog: "content",
+  faq: "content",
+  reviews: "content",
+  media: "content",
+  banners: "content",
+  smsLog: "smsLog",
+  discounts: "discounts",
+  surcharges: "surcharges",
+  settings: "settings",
+};
 
 const navItems = [
   {
@@ -283,9 +302,10 @@ const navItems = [
   },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ role }: { role: string }) {
   const pathname = usePathname();
   const t = useTranslations("admin");
+  const visibleItems = navItems.filter((item) => canAccess(role, NAV_SECTIONS[item.key]));
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-gray-900 text-white flex flex-col z-40">
@@ -300,7 +320,7 @@ export default function AdminSidebar() {
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto">
         <ul className="space-y-1 px-3">
-          {navItems.map((item) => {
+          {visibleItems.map((item) => {
             const isActive =
               item.href === "/admin"
                 ? pathname === "/admin"

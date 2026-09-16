@@ -2,6 +2,7 @@ import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
 import { NextRequest, NextResponse } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
+import { canAccess, isStaffRole, sectionForAdminPath } from "./lib/permissions";
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -82,8 +83,16 @@ export default async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
     }
 
-    if (isAdminRoute && payload.role !== "ADMIN") {
-      return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
+    if (isAdminRoute) {
+      if (!isStaffRole(payload.role)) {
+        return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
+      }
+      // Менеджеру закрыты секции админа (тарифы, скидки, настройки…) —
+      // отправляем на дашборд, а не на логин: он авторизован, просто не туда.
+      const section = sectionForAdminPath(pathname.replace(/^\/(ru|kz)/, ""));
+      if (!canAccess(payload.role, section)) {
+        return NextResponse.redirect(new URL(`/${locale}/admin`, request.url));
+      }
     }
 
     // If access token was refreshed, set new cookie

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 interface AdminHeaderProps {
   user: {
     email: string;
+    role: string;
   };
 }
 
@@ -27,6 +28,9 @@ export default function AdminHeader({ user }: AdminHeaderProps) {
       {/* Right: user info + logout */}
       <div className="flex items-center gap-4">
         <span className="text-sm text-gray-500">{user.email}</span>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+          {user.role === "ADMIN" ? t("roleAdmin") : t("roleManager")}
+        </span>
         <button
           onClick={handleLogout}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { minioClient, BUCKET_NAME } from "@/lib/minio";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -8,7 +8,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireSection("content");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

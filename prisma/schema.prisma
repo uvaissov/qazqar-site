@@ -243,6 +243,8 @@ model Address {
 
 enum UserRole {
   CLIENT
+  /// Сотрудник: заявки, пользователи (без ролей), контент. Заводит админ.
+  MANAGER
   ADMIN
 }
 

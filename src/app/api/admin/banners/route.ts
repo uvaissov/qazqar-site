@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -20,7 +20,7 @@ function parseDate(value: unknown): Date | null {
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requireSection("content");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -41,7 +41,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireSection("content");
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

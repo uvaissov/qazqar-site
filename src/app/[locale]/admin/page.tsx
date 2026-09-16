@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
@@ -33,6 +35,9 @@ async function getStats() {
 export default async function AdminDashboardPage() {
   const stats = await getStats();
   const t = await getTranslations("admin");
+  const session = await getSession();
+  // «Добавить авто» — секция cars (доступна и менеджеру); гейт на будущее.
+  const canManageCars = canAccess(session?.role, "cars");
 
   const statCards = [
     {
@@ -188,6 +193,7 @@ export default async function AdminDashboardPage() {
           {t("panel")}
         </h2>
         <div className="flex flex-wrap gap-3">
+          {canManageCars && (
           <Link
             href="/admin/cars"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-cyan-500 text-white text-sm font-medium rounded-lg hover:bg-cyan-600 transition-colors"
@@ -207,6 +213,7 @@ export default async function AdminDashboardPage() {
             </svg>
             {t("addCar")}
           </Link>
+          )}
           <Link
             href="/admin/bookings"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"

@@ -11,7 +11,8 @@ export async function PATCH(
     const { id } = await params;
     const { role } = await request.json();
 
-    if (!["CLIENT", "ADMIN"].includes(role)) {
+    // Назначать роли (в т.ч. ADMIN) может только админ — requireAdmin выше.
+    if (!["CLIENT", "MANAGER", "ADMIN"].includes(role)) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
