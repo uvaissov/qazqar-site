@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getOwnedBooking } from "@/lib/data/owned-booking";
 import { yumeApi } from "@/lib/yume/api";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -20,18 +21,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
-  const booking = await prisma.booking.findUnique({
-    where: { id },
-    include: { user: { select: { clientId: true } } },
-  });
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { clientId: true },
-  });
-  const ownedByClient =
-    currentUser?.clientId != null &&
-    booking?.user.clientId === currentUser.clientId;
-  if (!booking || (booking.userId !== session.userId && !ownedByClient)) {
+  const booking = await getOwnedBooking(session.userId, id);
+  if (!booking) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

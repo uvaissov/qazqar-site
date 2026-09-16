@@ -238,6 +238,9 @@ export async function syncUserBookings(userId: string): Promise<number> {
     await prisma.booking.upsert({
       where: { requestId: req.id },
       update: {
+        // Авто могли поменять в CRM (менеджер) или через кабинет — CRM
+        // источник истины, локальная заявка следует за ней.
+        carId: car.id,
         startDate: new Date(req.rent_start),
         endDate: new Date(req.rent_end),
         totalPrice: Math.round(parseFloat(req.price)),

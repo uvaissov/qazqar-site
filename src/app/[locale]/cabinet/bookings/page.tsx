@@ -89,6 +89,7 @@ export default async function CabinetBookingsPage() {
   const serialized = bookings.map((b) => ({
     id: b.id,
     carName: `${b.car.model.brand.name} ${b.car.model.name}`,
+    carNumber: b.car.number,
     carImage: b.car.photos[0]?.photo.url || null,
     carSlug: b.car.slug,
     startDate: b.startDate.toISOString(),

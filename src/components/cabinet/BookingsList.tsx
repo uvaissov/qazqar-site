@@ -24,6 +24,7 @@ type BookingDocument = {
 type Booking = {
   id: string;
   carName: string;
+  carNumber: string;
   carImage: string | null;
   carSlug: string;
   startDate: string;
@@ -64,6 +65,14 @@ const REASON_PRESETS = [
 
 type Tab = "active" | "history";
 
+type AlternativeCar = {
+  id: string;
+  number: string;
+  color: string;
+  year: number;
+  image: string | null;
+};
+
 export default function BookingsList({ bookings }: { bookings: Booking[] }) {
   const t = useTranslations("cabinet");
   const locale = useLocale();
@@ -75,6 +84,68 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [customReason, setCustomReason] = useState("");
   const [isOther, setIsOther] = useState(false);
+
+  // Смена авто: заявка → список свободных машин той же группы → PATCH .../car
+  const [changeCarModal, setChangeCarModal] = useState<string | null>(null);
+  const [alternatives, setAlternatives] = useState<AlternativeCar[] | null>(null);
+  const [selectedCar, setSelectedCar] = useState<string | null>(null);
+  const [changingCar, setChangingCar] = useState(false);
+  const [changeCarError, setChangeCarError] = useState<string | null>(null);
+
+  async function openChangeCarModal(id: string) {
+    setChangeCarModal(id);
+    setAlternatives(null);
+    setSelectedCar(null);
+    setChangeCarError(null);
+    try {
+      const res = await fetch(`/api/cabinet/bookings/${id}/alternatives`);
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { cars: AlternativeCar[] };
+      setAlternatives(data.cars);
+    } catch {
+      setAlternatives([]);
+      setChangeCarError(t("changeCarLoadError"));
+    }
+  }
+
+  function closeChangeCarModal() {
+    if (changingCar) return;
+    setChangeCarModal(null);
+    setAlternatives(null);
+    setSelectedCar(null);
+    setChangeCarError(null);
+  }
+
+  async function handleChangeCar() {
+    if (!changeCarModal || !selectedCar) return;
+    setChangingCar(true);
+    setChangeCarError(null);
+    try {
+      const res = await fetch(`/api/cabinet/bookings/${changeCarModal}/car`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ carId: selectedCar }),
+      });
+      if (res.ok) {
+        setChangingCar(false);
+        closeChangeCarModal();
+        router.refresh();
+        return;
+      }
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setChangeCarError(
+        data.error === "CAR_UNAVAILABLE"
+          ? t("changeCarTaken")
+          : data.error === "CRM_ERROR"
+            ? t("changeCarCrmError")
+            : t("changeCarError")
+      );
+    } catch {
+      setChangeCarError(t("changeCarError"));
+    } finally {
+      setChangingCar(false);
+    }
+  }
 
   function openCancelModal(id: string) {
     setCancelModal(id);
@@ -213,6 +284,9 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
                   <Link href={`/catalog/${booking.carSlug}`} className="font-semibold text-gray-900 hover:text-cyan-600">
                     {booking.carName}
                   </Link>
+                  <span className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-xs text-gray-600">
+                    {booking.carNumber}
+                  </span>
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[booking.status]}`}>
                     {t(`status_${booking.status}`)}
                   </span>
@@ -322,7 +396,13 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
             )}
 
             {booking.status === "PENDING" && (
-              <div className="mt-4 border-t border-gray-100 pt-3">
+              <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-gray-100 pt-3">
+                <button
+                  onClick={() => openChangeCarModal(booking.id)}
+                  className="text-sm text-cyan-600 hover:text-cyan-700"
+                >
+                  {t("changeCar")}
+                </button>
                 <button
                   onClick={() => openCancelModal(booking.id)}
                   disabled={cancelling === booking.id}
@@ -337,6 +417,79 @@ export default function BookingsList({ bookings }: { bookings: Booking[] }) {
       })}
 
       </div>
+      )}
+
+      {/* Change car modal */}
+      {changeCarModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={closeChangeCarModal}
+        >
+          <div
+            className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-1 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">{t("changeCarTitle")}</h3>
+              <button onClick={closeChangeCarModal} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-gray-500">{t("changeCarHint")}</p>
+
+            {alternatives === null ? (
+              <p className="py-6 text-center text-sm text-gray-400">{t("changeCarLoading")}</p>
+            ) : alternatives.length === 0 ? (
+              <p className="py-6 text-center text-sm text-gray-500">{t("changeCarEmpty")}</p>
+            ) : (
+              <div className="max-h-80 space-y-2 overflow-y-auto">
+                {alternatives.map((car) => (
+                  <button
+                    key={car.id}
+                    onClick={() => setSelectedCar(car.id)}
+                    className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                      selectedCar === car.id
+                        ? "border-cyan-500 bg-cyan-50"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    {car.image ? (
+                      <img src={car.image} alt={car.number} className="h-12 w-16 shrink-0 rounded object-cover" />
+                    ) : (
+                      <div className="h-12 w-16 shrink-0 rounded bg-gray-100" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-semibold text-gray-900">{car.number}</p>
+                      <p className="text-xs text-gray-500">{car.year} · {car.color}</p>
+                    </div>
+                    {selectedCar === car.id && <Check size={18} className="ml-auto shrink-0 text-cyan-600" />}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {changeCarError && (
+              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{changeCarError}</p>
+            )}
+
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={closeChangeCarModal}
+                disabled={changingCar}
+                className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {t("back")}
+              </button>
+              <button
+                onClick={handleChangeCar}
+                disabled={!selectedCar || changingCar}
+                className="flex-1 rounded-lg bg-cyan-600 py-2.5 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+              >
+                {changingCar ? "..." : t("changeCarConfirm")}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Cancel reason modal */}
