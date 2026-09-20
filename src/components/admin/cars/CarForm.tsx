@@ -35,6 +35,7 @@ interface CarData {
   hasRemote: boolean;
   remotePhone: string | null;
   deposit: number;
+  tariffId: string | null;
   status: string;
   photos: { photo: { url: string } }[];
   slug: string;
@@ -49,10 +50,18 @@ interface CarData {
   };
 }
 
+interface TariffOption {
+  id: string;
+  name: string;
+  deposit: number;
+  active: boolean;
+}
+
 interface CarFormProps {
   mode: "create" | "edit";
   car?: CarData;
   models: CarModel[];
+  tariffs: TariffOption[];
 }
 
 function generateSlug(
@@ -69,7 +78,7 @@ function generateSlug(
     .replace(/[^a-z0-9-]/g, "");
 }
 
-export default function CarForm({ mode, car, models }: CarFormProps) {
+export default function CarForm({ mode, car, models, tariffs }: CarFormProps) {
   const router = useRouter();
   const t = useTranslations("adminCars");
   const isApiCar = mode === "edit" && (car?.inventoryId ?? 0) > 0;
@@ -92,6 +101,7 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
   const [hasRemote, setHasRemote] = useState(car?.hasRemote ?? false);
   const [remotePhone, setRemotePhone] = useState(car?.remotePhone ?? "");
   const [deposit, setDeposit] = useState(car?.deposit?.toString() || "0");
+  const [tariffId, setTariffId] = useState(car?.tariffId ?? "");
   const [status, setStatus] = useState(car?.status || "AVAILABLE");
   const [images, setImages] = useState<string[]>(car?.photos?.map(p => p.photo.url) || []);
   const [slug, setSlug] = useState(car?.slug || "");
@@ -164,6 +174,7 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
       hasRemote,
       remotePhone: hasRemote ? normalizedRemotePhone : null,
       deposit: Number(deposit) || 0,
+      tariffId: tariffId || null,
       status,
       images,
       slug,
@@ -342,10 +353,32 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
             />
           </div>
 
+          {/* Tariff */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Тариф
+            </label>
+            <select
+              value={tariffId}
+              onChange={(e) => setTariffId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+            >
+              <option value="">— без тарифа (не бронируется) —</option>
+              {tariffs.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}{t.active ? "" : " (неактивен)"} · депозит {t.deposit.toLocaleString()} ₸
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Цена за сутки и депозит берутся из тарифной сетки; депозит ниже — переопределение для этой машины (0 — брать из тарифа).
+            </p>
+          </div>
+
           {/* Deposit */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Депозит (₸)
+              Депозит (₸) — переопределение
             </label>
             <input
               type="number"
@@ -353,7 +386,7 @@ export default function CarForm({ mode, car, models }: CarFormProps) {
               onChange={(e) => setDeposit(e.target.value)}
               min={0}
               step={1000}
-              placeholder="30000"
+              placeholder="0"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
             />
           </div>

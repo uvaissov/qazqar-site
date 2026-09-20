@@ -17,7 +17,7 @@ const NAV_SECTIONS: Record<string, AdminSection> = {
   media: "content",
   banners: "content",
   smsLog: "smsLog",
-  discounts: "discounts",
+  tariffs: "tariffs",
   surcharges: "surcharges",
   settings: "settings",
 };
@@ -181,8 +181,8 @@ const navItems = [
     ),
   },
   {
-    key: "discounts" as const,
-    href: "/admin/discounts" as const,
+    key: "tariffs" as const,
+    href: "/admin/tariffs" as const,
     icon: (
       <svg
         className="w-5 h-5"

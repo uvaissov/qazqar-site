@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 const carInclude = {
   model: { include: { brand: true } },
   photos: { include: { photo: true }, orderBy: { sortOrder: "asc" as const } },
+  // Тарифная сетка нужна странице авто; для списков это лишние строки,
+  // но include один на все выборки — иначе типы карточек разъезжаются
+  tariff: { include: { tiers: true } },
 };
 
 /// Статусы броней, которые занимают машину на свой период.

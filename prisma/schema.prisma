@@ -77,11 +77,46 @@ model Car {
   /// Запись не удаляем — на неё ссылаются бронирования; из витрины скрываем.
   isArchived    Boolean      @default(false)
   remotePhone   String?
+  /// Тарифная сетка машины. Без тарифа машина не бронируется.
+  tariffId      String?
   bookings      Booking[]
   photos        CarPhoto[]
   model         CarModel     @relation(fields: [modelId], references: [id])
+  tariff        Tariff?      @relation(fields: [tariffId], references: [id])
 
+  @@index([tariffId])
   @@map("cars")
+}
+
+/// Тарифная сетка группы машин: цена за сутки по ступеням срока аренды,
+/// две сезонные цены и депозит группы. См. docs/plans/2026-09-20-tariff-grid-design.md
+model Tariff {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  /// Депозит группы; Car.deposit > 0 переопределяет его.
+  deposit   Int          @default(0)
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  tiers     TariffTier[]
+  cars      Car[]
+
+  @@map("tariffs")
+}
+
+/// Ступень тарифа: minDays..maxDays включительно, цена за сутки летом и зимой.
+/// Ступени одного тарифа покрывают 1..maxDays без дыр — проверяет API админки.
+model TariffTier {
+  id          String @id @default(cuid())
+  tariffId    String
+  minDays     Int
+  maxDays     Int
+  priceSummer Int
+  priceWinter Int
+  tariff      Tariff @relation(fields: [tariffId], references: [id], onDelete: Cascade)
+
+  @@unique([tariffId, minDays])
+  @@map("tariff_tiers")
 }
 
 model Photo {

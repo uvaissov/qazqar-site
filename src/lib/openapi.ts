@@ -784,10 +784,6 @@ export const openApiSpec = {
       patch: { tags: ["Admin › Content"], summary: "Обновить отзыв (approve/reject)", security: [{ cookieAuth: [] }], parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { approved: { type: "boolean" } } } } } }, responses: { 200: { description: "Обновлён" } } },
       delete: { tags: ["Admin › Content"], summary: "Удалить отзыв", security: [{ cookieAuth: [] }], parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], responses: { 200: { description: "Удалён" } } },
     },
-    "/api/admin/discounts": {
-      get: { tags: ["Admin › Content"], summary: "Список скидок", security: [{ cookieAuth: [] }], responses: { 200: { description: "Массив" } } },
-      post: { tags: ["Admin › Content"], summary: "Создать скидку", security: [{ cookieAuth: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["minDays", "maxDays", "percent"], properties: { minDays: { type: "integer" }, maxDays: { type: "integer" }, percent: { type: "integer" }, active: { type: "boolean", default: true } } } } } }, responses: { 201: { description: "Создана" } } },
-    },
     "/api/admin/faq": {
       get: { tags: ["Admin › Content"], summary: "Список FAQ", security: [{ cookieAuth: [] }], responses: { 200: { description: "Массив" } } },
       post: { tags: ["Admin › Content"], summary: "Создать FAQ", security: [{ cookieAuth: [] }], requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { questionRu: { type: "string" }, questionKz: { type: "string" }, answerRu: { type: "string" }, answerKz: { type: "string" } } } } } }, responses: { 201: { description: "Создан" } } },

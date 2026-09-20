@@ -3,7 +3,6 @@
     "home": "Главная",
     "about": "О нас",
     "catalog": "Каталог",
-    "discounts": "Скидки",
     "reviews": "Отзывы",
     "terms": "Условия",
     "blog": "Блог",
@@ -46,11 +45,6 @@
     "sectionTitle": "О нас",
     "title": "Выгодный прокат по всему городу",
     "description": "Наша компания более 3 лет оказывает услуги проката автомобилей без водителя в городе Астана."
-  },
-  "discounts": {
-    "sectionTitle": "Выгодно — с нами",
-    "title": "Чем больше срок аренды, тем выгоднее!",
-    "days": "дней"
   },
   "reviews": {
     "sectionTitle": "Отзывы",
@@ -108,7 +102,10 @@
     "loginRequired": "Для отправки заявки необходимо авторизоваться",
     "pickupAddress": "Адрес подачи",
     "returnAddress": "Адрес возврата",
-    "selectAddress": "Выберите адрес"
+    "selectAddress": "Выберите адрес",
+    "maxDaysExceeded": "Срок аренды не может превышать {days} дн.",
+    "noTariff": "Тариф для автомобиля не назначен",
+    "perDayShort": "₸/сутки"
   },
   "catalogPage": {
     "title": "Каталог автомобилей",
@@ -163,10 +160,15 @@
     "no": "Нет",
     "priceFrom": "от",
     "perDay": "₸ / сутки",
-    "discountInfo": "Скидка до 40% при длительной аренде",
     "similarCars": "Похожие автомобили",
     "gallery": "Фотогалерея",
-    "noImages": "Нет фотографий"
+    "noImages": "Нет фотографий",
+    "tariffTitle": "Тарифная сетка",
+    "tariffDays": "дн.",
+    "tariffMaxDays": "Максимальный срок аренды — {days} дн.",
+    "tariffSeasonSummer": "летний тариф",
+    "tariffSeasonWinter": "зимний тариф",
+    "noTariff": "Тариф для этого автомобиля ещё не назначен — бронирование недоступно"
   },
   "aboutPage": {
     "title": "О компании Qazqar",
@@ -268,7 +270,6 @@
     "blog": "Блог",
     "faq": "FAQ",
     "reviews": "Отзывы",
-    "discounts": "Скидки",
     "surcharges": "Надбавки",
     "media": "Медиа",
     "smsLog": "Журнал SMS",
@@ -282,7 +283,8 @@
     "addCar": "Добавить автомобиль",
     "viewBookings": "Посмотреть заявки",
     "panel": "Панель управления",
-    "banners": "Баннеры"
+    "banners": "Баннеры",
+    "tariffs": "Тарифы"
   },
   "adminCars": {
     "title": "Автомобили",
@@ -365,8 +367,6 @@
     "approved": "Одобрен",
     "pending": "На модерации",
     "rating": "Рейтинг",
-    "discounts": "Скидки",
-    "addDiscount": "Добавить скидку",
     "surcharges": "Надбавки без залога",
     "surchargesDescription": "Надбавка к стоимости аренды при выборе варианта без залога",
     "addSurcharge": "Добавить надбавку",

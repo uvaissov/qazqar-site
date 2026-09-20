@@ -22,10 +22,16 @@ export default async function AdminCarsEditPage({ params }: EditCarPageProps) {
     notFound();
   }
 
-  const models = await prisma.carModel.findMany({
-    include: { brand: true },
-    orderBy: [{ brand: { name: "asc" } }, { name: "asc" }],
-  });
+  const [models, tariffs] = await Promise.all([
+    prisma.carModel.findMany({
+      include: { brand: true },
+      orderBy: [{ brand: { name: "asc" } }, { name: "asc" }],
+    }),
+    prisma.tariff.findMany({
+      select: { id: true, name: true, deposit: true, active: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div>
@@ -36,6 +42,7 @@ export default async function AdminCarsEditPage({ params }: EditCarPageProps) {
         mode="edit"
         car={JSON.parse(JSON.stringify(car))}
         models={JSON.parse(JSON.stringify(models))}
+        tariffs={JSON.parse(JSON.stringify(tariffs))}
       />
 
       <section className="mt-10">

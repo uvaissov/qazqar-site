@@ -6,6 +6,7 @@ import { BookingStatus } from "@/generated/prisma/enums";
 import { notifyNewBooking } from "@/lib/telegram/notify";
 import { detectBookingSource, BOOKING_SOURCE_LABELS } from "@/lib/booking-source";
 import { normalizePhone } from "@/lib/phone";
+import { isQuoteError, quote } from "@/lib/pricing";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
     // Get car and check availability
     const car = await prisma.car.findUnique({
       where: { id: carId },
-      include: { model: { include: { brand: true } } },
+      include: { model: { include: { brand: true } }, tariff: { include: { tiers: true } } },
     });
     if (!car || car.isArchived) {
       return NextResponse.json(
@@ -67,11 +68,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
     }
 
-    // Find applicable discount
-    const discount = await prisma.discount.findFirst({
-      where: { active: true, minDays: { lte: days }, maxDays: { gte: days } },
-    });
-    const discountPercent = discount?.percent ?? 0;
+    // Цена по тарифной сетке машины; срок длиннее сетки и машина без
+    // тарифа — отказ (docs/plans/2026-09-20-tariff-grid-design.md).
+    const price = await quote(car, start, end);
+    if (isQuoteError(price)) {
+      return NextResponse.json(price, { status: 400 });
+    }
 
     // Determine user: existing session or quick registration
     let userId: string | undefined;
@@ -141,30 +143,10 @@ export async function POST(request: Request) {
     if (pickupAddressName) crmCommentParts.push(`Адрес подачи: ${pickupAddressName}`);
     if (returnAddressName) crmCommentParts.push(`Адрес возврата: ${returnAddressName}`);
 
-    // Deposit info
-    const depositAmount = car.deposit ?? 0;
-    let noDepositSurcharge = 0;
+    // Депозит и надбавка «без депозита» — из того же расчёта, что и витрина
+    const depositAmount = price.deposit;
+    const noDepositSurcharge = withDeposit === false ? price.withoutDeposit : 0;
     if (withDeposit === false && depositAmount > 0) {
-      // Calculate no-deposit surcharge
-      const surcharge = await prisma.noDepositSurcharge.findFirst({
-        where: { minDay: { lte: days }, maxDay: { gte: days } },
-      });
-      if (surcharge) {
-        const settingVat = await prisma.appSetting.findUnique({ where: { key: "vatPercent" } });
-        const vat = Number(settingVat?.value) || 0;
-        noDepositSurcharge = Math.round(depositAmount * surcharge.percent / 100 * (1 + vat / 100));
-      } else {
-        // Overflow
-        const lastSurcharge = await prisma.noDepositSurcharge.findFirst({ orderBy: { maxDay: "desc" } });
-        const settingStep = await prisma.appSetting.findUnique({ where: { key: "overflowDailyPercent" } });
-        const settingVat = await prisma.appSetting.findUnique({ where: { key: "vatPercent" } });
-        const lastPercent = lastSurcharge?.percent ?? 0;
-        const lastDay = lastSurcharge?.maxDay ?? 0;
-        const step = Number(settingStep?.value) || 0;
-        const vat = Number(settingVat?.value) || 0;
-        const percent = lastPercent + step * Math.max(0, days - lastDay);
-        noDepositSurcharge = Math.round(depositAmount * percent / 100 * (1 + vat / 100));
-      }
       crmCommentParts.push(`Без депозита: надбавка ${noDepositSurcharge.toLocaleString()} ₸`);
     } else if (depositAmount > 0) {
       crmCommentParts.push(`С депозитом: ${depositAmount.toLocaleString()} ₸`);
@@ -197,7 +179,8 @@ export async function POST(request: Request) {
 
         await yumeApi.attachInventory(yumeRequest.id, {
           inventory: car.inventoryId,
-          tarif_price: car.pricePerDay,
+          // Цена за сутки по ступени сетки — так итог в CRM совпадает с нашим
+          tarif_price: price.pricePerDay,
           start_at: crmStart,
           end_at: crmEnd,
         });
@@ -275,8 +258,8 @@ export async function POST(request: Request) {
             customerPhone,
             startDate: start,
             endDate: end,
-            totalPrice: Math.round(days * car.pricePerDay * (1 - discountPercent / 100)),
-            discountPercent,
+            totalPrice: price.totalPrice,
+            discountPercent: 0,
             withDeposit: withDeposit !== false,
             depositAmount: withDeposit === false ? noDepositSurcharge : depositAmount,
             depositLabel: depositAmount > 0

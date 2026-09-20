@@ -1,20 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { CheckCircle2, AlertCircle, Calendar, Send, Sparkles, MapPin } from "lucide-react";
+import { CheckCircle2, AlertCircle, Calendar, Send, MapPin } from "lucide-react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ru } from "date-fns/locale/ru";
 import { kk } from "date-fns/locale/kk";
 import "react-datepicker/dist/react-datepicker.css";
 import PhoneInput from "@/components/ui/PhoneInput";
-
-type Discount = {
-  id: string;
-  minDays: number;
-  maxDays: number;
-  percent: number;
-};
 
 type Address = {
   id: string;
@@ -24,11 +17,23 @@ type Address = {
 
 type BookingFormProps = {
   carId: string;
-  pricePerDay: number;
   deposit: number;
-  discounts: Discount[];
+  /** false — у машины нет действующего тарифа, форма не принимает заявку. */
+  bookable: boolean;
   initialDateFrom?: string;
   initialDateTo?: string;
+};
+
+/**
+ * Расчёт с сервера (`/api/catalog/[id]/price`): цена за сутки по ступени
+ * тарифной сетки и сезону, итог, надбавка «без депозита». Локального расчёта
+ * больше нет — правила тарифа живут в одном месте, src/lib/pricing.ts.
+ */
+type Calculation = {
+  days: number;
+  pricePerDay: number;
+  totalPrice: number;
+  withoutDeposit: number;
 };
 
 const TIME_OPTIONS = Array.from({ length: 12 }, (_, i) => {
@@ -44,9 +49,8 @@ function formatDateForAPI(d: Date, time: string): string {
 
 export default function BookingForm({
   carId,
-  pricePerDay,
   deposit,
-  discounts,
+  bookable,
   initialDateFrom,
   initialDateTo,
 }: BookingFormProps) {
@@ -93,25 +97,48 @@ export default function BookingForm({
     }
   }, [success, error]);
   const [withDepositSelected, setWithDepositSelected] = useState(true);
-  const [withoutDepositAmount, setWithoutDepositAmount] = useState(0);
+  const [calculation, setCalculation] = useState<Calculation | null>(null);
+  const [priceError, setPriceError] = useState("");
+  const withoutDepositAmount = calculation?.withoutDeposit ?? 0;
 
-  // Fetch withoutDeposit amount from price API when dates change
+  // Цена на выбранные даты — с сервера. Превышение срока сетки и машина
+  // без тарифа приходят кодами MAX_DAYS_EXCEEDED / NO_TARIFF.
   useEffect(() => {
-    if (!startDate || !endDate || deposit <= 0) {
-      setWithoutDepositAmount(0);
+    if (!startDate || !endDate) {
+      setCalculation(null);
+      setPriceError("");
       return;
     }
     const dateStart = formatDateForAPI(startDate, startTime);
     const dateEnd = formatDateForAPI(endDate, endTime);
+    let cancelled = false;
     fetch(`/api/catalog/${carId}/price?dateStart=${encodeURIComponent(dateStart)}&dateEnd=${encodeURIComponent(dateEnd)}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.withoutDeposit) {
-          setWithoutDepositAmount(data.withoutDeposit);
+      .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+      .then(({ ok, data }) => {
+        if (cancelled) return;
+        if (ok && data.available !== false && typeof data.totalPrice === "number") {
+          setCalculation({
+            days: data.days,
+            pricePerDay: data.pricePerDay,
+            totalPrice: data.totalPrice,
+            withoutDeposit: data.withoutDeposit ?? 0,
+          });
+          setPriceError("");
+          return;
         }
+        setCalculation(null);
+        if (data.error === "MAX_DAYS_EXCEEDED") setPriceError(t("maxDaysExceeded", { days: data.maxDays }));
+        else if (data.error === "NO_TARIFF") setPriceError(t("noTariff"));
+        else if (data.error === "CAR_UNAVAILABLE") setPriceError(t("dateConflict"));
+        else setPriceError("");
       })
-      .catch(() => {});
-  }, [startDate, endDate, startTime, endTime, carId, deposit]);
+      .catch(() => {
+        if (!cancelled) setCalculation(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [startDate, endDate, startTime, endTime, carId, t]);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -184,26 +211,6 @@ export default function BookingForm({
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  const calculation = useMemo(() => {
-    if (!startDate || !endDate) return null;
-
-    const days = Math.ceil(
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (days <= 0) return null;
-
-    const basePrice = days * pricePerDay;
-
-    const applicable = discounts.find(
-      (d) => days >= d.minDays && days <= d.maxDays
-    );
-    const discountPercent = applicable?.percent ?? 0;
-    const totalPrice = Math.round(basePrice * (1 - discountPercent / 100));
-
-    return { days, basePrice, discountPercent, totalPrice };
-  }, [startDate, endDate, pricePerDay, discounts]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -295,8 +302,12 @@ export default function BookingForm({
     if (!res.ok) {
       if (data.error === "INVALID_OTP") {
         setError(t("invalidOtp"));
-      } else if (data.error === "DATE_CONFLICT") {
+      } else if (data.error === "DATE_CONFLICT" || data.error === "DATES_UNAVAILABLE") {
         setError(t("dateConflict"));
+      } else if (data.error === "MAX_DAYS_EXCEEDED") {
+        setError(t("maxDaysExceeded", { days: data.maxDays }));
+      } else if (data.error === "NO_TARIFF") {
+        setError(t("noTariff"));
       } else {
         setError(data.error || t("error"));
       }
@@ -775,6 +786,13 @@ export default function BookingForm({
           </div>
         )}
 
+        {priceError && (
+          <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>{priceError}</span>
+          </div>
+        )}
+
         {/* Price calculation Bento Card */}
         {calculation && (
           <div className="bg-gray-900 text-white rounded-2xl p-5 relative overflow-hidden">
@@ -782,28 +800,12 @@ export default function BookingForm({
             
             <div className="flex justify-between items-center text-gray-400 text-sm mb-3 font-medium">
               <span>
-                {calculation.days} {t("days")}
+                {calculation.days} {t("days")} × {calculation.pricePerDay.toLocaleString()} {t("perDayShort")}
               </span>
               <span>
-                {calculation.basePrice.toLocaleString()} ₸
+                {calculation.totalPrice.toLocaleString()} ₸
               </span>
             </div>
-            
-            {calculation.discountPercent > 0 && (
-              <div className="flex justify-between items-center text-cyan-400 text-sm mb-3 font-bold bg-cyan-950/50 p-2 rounded-lg">
-                <span className="flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  {t("discount")} {calculation.discountPercent}%
-                </span>
-                <span>
-                  -
-                  {(
-                    calculation.basePrice - calculation.totalPrice
-                  ).toLocaleString()}{" "}
-                  ₸
-                </span>
-              </div>
-            )}
             
             {!withDepositSelected && withoutDepositAmount > 0 && (
               <div className="flex justify-between items-center text-amber-400 text-sm mb-3 font-bold bg-amber-950/50 p-2 rounded-lg">
@@ -836,7 +838,7 @@ export default function BookingForm({
         {!needsOtp && (
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !bookable || !!priceError}
             className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black uppercase tracking-widest rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-cyan-500/30 mt-2"
           >
             {submitting ? "..." : (

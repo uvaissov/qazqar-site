@@ -1,19 +1,17 @@
 import { getGroupedCars } from "@/lib/data/cars";
-import { getDiscounts, getReviews, getFaqItems } from "@/lib/data/content";
+import { getReviews, getFaqItems } from "@/lib/data/content";
 import JsonLd from "@/components/seo/JsonLd";
 import HeroSection from "@/components/home/HeroSection";
 import CarsSection from "@/components/home/CarsSection";
 import StepsSection from "@/components/home/StepsSection";
 import AboutSection from "@/components/home/AboutSection";
-import DiscountsSection from "@/components/home/DiscountsSection";
 import ReviewsSection from "@/components/home/ReviewsSection";
 import FaqSection from "@/components/home/FaqSection";
 import ScrollToTop from "@/components/ui/ScrollToTop";
 
 export default async function HomePage() {
-  const [cars, discounts, reviews, faqItems] = await Promise.all([
+  const [cars, reviews, faqItems] = await Promise.all([
     getGroupedCars(),
-    getDiscounts(),
     getReviews(),
     getFaqItems(),
   ]);
@@ -42,7 +40,6 @@ export default async function HomePage() {
         <CarsSection cars={cars} />
         <StepsSection />
         <AboutSection />
-        {discounts.length > 0 && <DiscountsSection discounts={discounts} />}
         <ReviewsSection reviews={reviews} />
         <FaqSection faqItems={faqItems} />
         <ScrollToTop />

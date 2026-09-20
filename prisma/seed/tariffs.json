@@ -1,0 +1,808 @@
+[
+  {
+    "name": "Hyundai Accent 2015",
+    "years": "2015",
+    "deposit": 30000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 14000,
+        "priceWinter": 14000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 13000,
+        "priceWinter": 13000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 11000,
+        "priceWinter": 12000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 10000,
+        "priceWinter": 11000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Accent 2015"
+    ]
+  },
+  {
+    "name": "KIA RIO",
+    "years": "2015",
+    "deposit": 30000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 14000,
+        "priceWinter": 14000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 13000,
+        "priceWinter": 13000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 12000,
+        "priceWinter": 12000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 11000,
+        "priceWinter": 11000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "KIA RIO"
+    ]
+  },
+  {
+    "name": "Hyundai Accent 2017",
+    "years": "2017 - 2019",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 15000,
+        "priceWinter": 15000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 14000,
+        "priceWinter": 14000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 12500,
+        "priceWinter": 12000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 11000,
+        "priceWinter": 11000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Accent 2017"
+    ]
+  },
+  {
+    "name": "Toyota Camry 50",
+    "years": "2012",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 20000,
+        "priceWinter": 21000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 18000,
+        "priceWinter": 19000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 16000,
+        "priceWinter": 17000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 15000,
+        "priceWinter": 15000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Toyota Camry 50"
+    ]
+  },
+  {
+    "name": "Toyota Camry 55",
+    "years": "2016",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 22000,
+        "priceWinter": 22000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 25000,
+        "priceWinter": 20500
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 18000,
+        "priceWinter": 18000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 15000,
+        "priceWinter": 15000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Toyota Camry 55"
+    ]
+  },
+  {
+    "name": "Hyundai Accent 2021",
+    "years": "2021",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 17000,
+        "priceWinter": 17000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 15500,
+        "priceWinter": 15500
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 13000,
+        "priceWinter": 13000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 12000,
+        "priceWinter": 12000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Accent 2021"
+    ]
+  },
+  {
+    "name": "Hyundai Accent 2023",
+    "years": "2023",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 20000,
+        "priceWinter": 20000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 18000,
+        "priceWinter": 18000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 16000,
+        "priceWinter": 16000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 13000,
+        "priceWinter": 14000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Accent 2023"
+    ]
+  },
+  {
+    "name": "CHANGAN X5 PLUS",
+    "years": "2025",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 22000,
+        "priceWinter": 25000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 20000,
+        "priceWinter": 22500
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 17000,
+        "priceWinter": 18500
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 15000,
+        "priceWinter": 17000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "CHANGAN X5 PLUS"
+    ]
+  },
+  {
+    "name": "CHANGAN CS55 PLUS",
+    "years": "2026",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 30000,
+        "priceWinter": 25000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 27000,
+        "priceWinter": 22500
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 24000,
+        "priceWinter": 18500
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 22000,
+        "priceWinter": 17000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "CHANGAN CS55 PLUS"
+    ]
+  },
+  {
+    "name": "BYD Seal 05",
+    "years": "2026",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 25000,
+        "priceWinter": 25000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 22000,
+        "priceWinter": 22500
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 19000,
+        "priceWinter": 18500
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 17000,
+        "priceWinter": 17000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "BYD Seal 05"
+    ]
+  },
+  {
+    "name": "EXEED LX",
+    "years": "2023",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 29000,
+        "priceWinter": 25000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 26000,
+        "priceWinter": 22500
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 23000,
+        "priceWinter": 18500
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 18000,
+        "priceWinter": 17000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "EXEED LX"
+    ]
+  },
+  {
+    "name": "Hyundai Elantra 2021",
+    "years": "2021",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 20000,
+        "priceWinter": 20000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 18000,
+        "priceWinter": 18000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 16000,
+        "priceWinter": 16000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 14000,
+        "priceWinter": 14000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Elantra 2021"
+    ]
+  },
+  {
+    "name": "Hyundai Elantra 22",
+    "years": "2022",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 22000,
+        "priceWinter": 22000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 20000,
+        "priceWinter": 20000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 18000,
+        "priceWinter": 18000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 16000,
+        "priceWinter": 16000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Elantra 22"
+    ]
+  },
+  {
+    "name": "Hyundai Elantra 2024",
+    "years": "2024 - 2025",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 25000,
+        "priceWinter": 25000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 22000,
+        "priceWinter": 22000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 19000,
+        "priceWinter": 18000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 17000,
+        "priceWinter": 17000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Elantra 2024"
+    ]
+  },
+  {
+    "name": "Hyundai Sonata 2022 / KIA K5 2021",
+    "years": "2022, 2021",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 30000,
+        "priceWinter": 30000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 27000,
+        "priceWinter": 27000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 24000,
+        "priceWinter": 24000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 22000,
+        "priceWinter": 22000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Sonata 2022",
+      "KIA K5 2021"
+    ]
+  },
+  {
+    "name": "Hyundai Sonata 2023",
+    "years": "2022 - 2023",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 33000,
+        "priceWinter": 33000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 31000,
+        "priceWinter": 31000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 27500,
+        "priceWinter": 27500
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 24500,
+        "priceWinter": 24500
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Sonata 2023"
+    ]
+  },
+  {
+    "name": "Hyundai Tucson 2023",
+    "years": "2023 - 2024",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 35000,
+        "priceWinter": 35000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 33000,
+        "priceWinter": 33000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 28000,
+        "priceWinter": 28000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 26000,
+        "priceWinter": 26000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Tucson 2023"
+    ]
+  },
+  {
+    "name": "Hyundai Tucson 2025",
+    "years": "2025",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 37000,
+        "priceWinter": 37000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 34500,
+        "priceWinter": 34000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 30000,
+        "priceWinter": 29000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 27000,
+        "priceWinter": 26000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Tucson 2025"
+    ]
+  },
+  {
+    "name": "Toyota Camry 70",
+    "years": "2018",
+    "deposit": 50000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 30000,
+        "priceWinter": 21000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 28000,
+        "priceWinter": 19000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 26000,
+        "priceWinter": 17000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 24000,
+        "priceWinter": 16000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Toyota Camry 70"
+    ]
+  },
+  {
+    "name": "Hyundai Palisade 2023",
+    "years": "2023",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 62000,
+        "priceWinter": 62000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 57000,
+        "priceWinter": 57000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 50000,
+        "priceWinter": 50000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 45000,
+        "priceWinter": 45000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Palisade 2023"
+    ]
+  },
+  {
+    "name": "Hyundai Custin 2024",
+    "years": "2024",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 32000,
+        "priceWinter": 45000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 30000,
+        "priceWinter": 41000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 27000,
+        "priceWinter": 36000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 26000,
+        "priceWinter": 32000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Hyundai Custin 2024"
+    ]
+  },
+  {
+    "name": "KIA KARNIVAL 2021",
+    "years": "2021",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 45000,
+        "priceWinter": 45000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 52000,
+        "priceWinter": 41000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 44000,
+        "priceWinter": 36000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 37000,
+        "priceWinter": 32000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "KIA KARNIVAL 2021"
+    ]
+  },
+  {
+    "name": "Montero Sport 2023",
+    "years": "2023",
+    "deposit": 100000,
+    "tiers": [
+      {
+        "minDays": 1,
+        "maxDays": 2,
+        "priceSummer": 55000,
+        "priceWinter": 55000
+      },
+      {
+        "minDays": 3,
+        "maxDays": 5,
+        "priceSummer": 49000,
+        "priceWinter": 49000
+      },
+      {
+        "minDays": 6,
+        "maxDays": 15,
+        "priceSummer": 43000,
+        "priceWinter": 43000
+      },
+      {
+        "minDays": 16,
+        "maxDays": 30,
+        "priceSummer": 38000,
+        "priceWinter": 38000
+      }
+    ],
+    "maxDays": 30,
+    "groups": [
+      "Montero Sport 2023"
+    ]
+  }
+]

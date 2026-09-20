@@ -1,5 +1,6 @@
 import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { refreshDisplayPrices } from "@/lib/pricing";
 import { NextResponse } from "next/server";
 import { normalizePhone } from "@/lib/phone";
 
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
       descriptionRu,
       descriptionKz,
       deposit,
+      tariffId,
     } = body;
 
     if (!modelId || !number || !year || !color || !slug) {
@@ -115,11 +117,14 @@ export async function POST(request: Request) {
         status: status || "AVAILABLE",
         slug,
         deposit: Number(deposit) || 0,
+        tariffId: tariffId || null,
         descriptionRu: descriptionRu || null,
         descriptionKz: descriptionKz || null,
       },
       include: { model: { include: { brand: true } } },
     });
+    // Витринная цена следует за тарифом
+    if (tariffId) await refreshDisplayPrices(tariffId);
 
     return NextResponse.json(car, { status: 201 });
   } catch (error) {

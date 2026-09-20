@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getCarBySlug, getSimilarCars, getCarImages } from "@/lib/data/cars";
-import { getDiscounts } from "@/lib/data/content";
+import { getSeasonBounds, seasonFor, sortedTiers, tariffMaxDays, tierPrice } from "@/lib/pricing";
 import JsonLd from "@/components/seo/JsonLd";
 import CarGallery from "@/components/car/CarGallery";
 import CarSpecs from "@/components/car/CarSpecs";
 import BookingForm from "@/components/car/BookingForm";
+import TariffTable from "@/components/car/TariffTable";
 import SimilarCars from "@/components/car/SimilarCars";
 import { Link } from "@/i18n/routing";
 import { ChevronRight } from "lucide-react";
@@ -58,11 +59,26 @@ export default async function CarDetailPage({
   const car = await getCarBySlug(slug);
   if (!car) notFound();
 
-  const [similarCars, discounts, t] = await Promise.all([
+  const [similarCars, seasonBounds, t] = await Promise.all([
     getSimilarCars(car.id, car.modelId),
-    getDiscounts(),
+    getSeasonBounds(),
     getTranslations("nav"),
   ]);
+
+  // Сетка текущего сезона — для таблицы под формой; точную цену на даты
+  // форма запрашивает у /api/catalog/[id]/price
+  const season = seasonFor(new Date(), seasonBounds);
+  const tariff =
+    car.tariff && car.tariff.active && car.tariff.tiers.length > 0
+      ? {
+          maxDays: tariffMaxDays(car.tariff),
+          tiers: sortedTiers(car.tariff).map((tier) => ({
+            minDays: tier.minDays,
+            maxDays: tier.maxDays,
+            pricePerDay: tierPrice(tier, season),
+          })),
+        }
+      : null;
 
   const title = `${car.model.brand.name} ${car.model.name} ${car.year}`;
 
@@ -112,15 +128,15 @@ export default async function CarDetailPage({
 
             {/* Right column: Booking form (Sticky) */}
             <div className="lg:col-span-4">
-              <div className="sticky top-24">
+              <div className="sticky top-24 space-y-4">
                 <BookingForm
                   carId={car.id}
-                  pricePerDay={car.pricePerDay}
-                  deposit={car.deposit}
-                  discounts={discounts}
+                  deposit={car.deposit > 0 ? car.deposit : (car.tariff?.deposit ?? 0)}
+                  bookable={tariff !== null}
                   initialDateFrom={searchParams.dateFrom}
                   initialDateTo={searchParams.dateTo}
                 />
+                <TariffTable tariff={tariff} season={season} />
               </div>
             </div>
           </div>

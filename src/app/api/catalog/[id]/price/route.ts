@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isQuoteError, quote } from "@/lib/pricing";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -53,7 +54,13 @@ export async function GET(
     // Find car by id
     const car = await prisma.car.findUnique({
       where: { id },
-      select: { id: true, pricePerDay: true, deposit: true, status: true, isArchived: true },
+      select: {
+        id: true,
+        deposit: true,
+        status: true,
+        isArchived: true,
+        tariff: { include: { tiers: true } },
+      },
     });
 
     if (!car || car.isArchived || car.status !== "AVAILABLE") {
@@ -62,11 +69,6 @@ export async function GET(
         { status: 404 }
       );
     }
-
-    // Calculate rental days
-    const days = Math.ceil(
-      (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-    );
 
     // Check availability - no overlapping bookings
     const conflictingBooking = await prisma.booking.findFirst({
@@ -83,78 +85,30 @@ export async function GET(
       return NextResponse.json({ available: false, error: "CAR_UNAVAILABLE" });
     }
 
-    // Fetch all active discounts for display
-    const allDiscounts = await prisma.discount.findMany({
-      where: { active: true },
-      orderBy: { minDays: "asc" },
-      select: { id: true, minDays: true, maxDays: true, percent: true },
-    });
-
-    // Find best applicable discount (highest percent where minDays <= days)
-    const discount = await prisma.discount.findFirst({
-      where: {
-        active: true,
-        minDays: { lte: days },
-      },
-      orderBy: { percent: "desc" },
-    });
-
-    const discountPercent = discount?.percent ?? 0;
-    const subtotal = car.pricePerDay * days;
-    const discountAmount = Math.round((subtotal * discountPercent) / 100);
-    const totalPrice = subtotal - discountAmount;
-
-    // Deposit
-    const depositBase = car.deposit ?? 0;
-
-    // No-deposit surcharge: deposit × cardooPercent × (1 + VAT)
-    let withoutDeposit = 0;
-    if (depositBase > 0) {
-      // Find surcharge for day count (range match)
-      const surcharge = await prisma.noDepositSurcharge.findFirst({
-        where: {
-          minDay: { lte: days },
-          maxDay: { gte: days },
-        },
-      });
-
-      let cardooPercent: number;
-      if (surcharge) {
-        cardooPercent = surcharge.percent;
-      } else {
-        // Overflow: last configured day + step per extra day
-        const lastSurcharge = await prisma.noDepositSurcharge.findFirst({
-          orderBy: { maxDay: "desc" },
-        });
-        const settingStep = await prisma.appSetting.findUnique({
-          where: { key: "overflowDailyPercent" },
-        });
-        const lastDay = lastSurcharge?.maxDay ?? 0;
-        const lastPercent = lastSurcharge?.percent ?? 0;
-        const step = Number(settingStep?.value) || 0;
-        const extraDays = Math.max(0, days - lastDay);
-        cardooPercent = lastPercent + step * extraDays;
-      }
-
-      const settingVat = await prisma.appSetting.findUnique({
-        where: { key: "vatPercent" },
-      });
-      const vatPercent = Number(settingVat?.value) || 0;
-      withoutDeposit = Math.round(depositBase * cardooPercent / 100 * (1 + vatPercent / 100));
+    // Цена — по тарифной сетке машины (docs/plans/2026-09-20-tariff-grid-design.md).
+    // Срок длиннее сетки и машина без тарифа — ошибки 400 с кодом для клиента.
+    const q = await quote(car, start, end);
+    if (isQuoteError(q)) {
+      return NextResponse.json(q, { status: 400 });
     }
 
     return NextResponse.json({
       carId: car.id,
-      pricePerDay: car.pricePerDay,
-      days,
-      subtotal,
-      discountPercent,
-      discountAmount,
-      totalPrice,
-      depositBase,
-      withoutDeposit,
-      discounts: allDiscounts,
-      appliedDiscountId: discount?.id ?? null,
+      pricePerDay: q.pricePerDay,
+      days: q.days,
+      subtotal: q.totalPrice,
+      totalPrice: q.totalPrice,
+      depositBase: q.deposit,
+      withoutDeposit: q.withoutDeposit,
+      season: q.season,
+      tariff: q.tariff,
+      appliedTierId: q.tier.id,
+      // Скидок больше нет — поля оставлены ради старых сборок мобилки,
+      // которые считают итог как pricePerDay × days × (1 − discountPercent).
+      discountPercent: 0,
+      discountAmount: 0,
+      discounts: [],
+      appliedDiscountId: null,
       available: true,
     });
   } catch (error) {

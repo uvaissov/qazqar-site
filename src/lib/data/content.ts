@@ -1,12 +1,5 @@
 import { prisma } from "@/lib/prisma";
 
-export async function getDiscounts() {
-  return prisma.discount.findMany({
-    where: { active: true },
-    orderBy: { minDays: "asc" },
-  });
-}
-
 export async function getReviews() {
   return prisma.review.findMany({
     where: { approved: true },

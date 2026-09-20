@@ -10,7 +10,6 @@ import MobileMenu from "./MobileMenu";
 const navItems = [
   { key: "home", href: "/" },
   { key: "about", href: "/#about" },
-  { key: "discounts", href: "/#discounts" },
   { key: "reviews", href: "/#reviews" },
   { key: "terms", href: "/#faq" },
   { key: "blog", href: "/blog" },

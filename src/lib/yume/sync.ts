@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { yumeApi } from "./api";
 import type { YumeInventory, YumeScheduleInventory } from "./api";
 import { CrmRequestStatus, mapCrmStatus } from "./booking-status";
+import { mapDocument, needsDocuments } from "./document-signs";
+import { refreshAllDisplayPrices } from "@/lib/pricing";
 import { emitBookingChanged } from "@/lib/events/booking-events";
 
 const STATUS_INTERVAL = 60_000; // 1 minute — car statuses (schedules)
@@ -109,6 +111,10 @@ async function syncInventories() {
 
   const elapsed = Date.now() - start;
   g.__syncInventoryLastAt = new Date();
+  // Сезон меняется раз в полгода — часового синка хватает, чтобы витринная
+  // цена машин с тарифом переключилась с летней ступени на зимнюю
+  await refreshAllDisplayPrices();
+
   console.log(
     `[Sync] Inventories done in ${elapsed}ms: ${carsUpserted} cars${archived ? `, ${archived} archived` : ""}`,
   );
@@ -185,34 +191,12 @@ async function syncActiveBookings() {
       const req = await yumeApi.getRequestOrOrder(booking.requestId!);
       const newStatus = mapCrmStatus(req.status, booking.status);
 
-      // Sync documents for CONFIRMED/ACTIVE bookings
+      // Документы — для заявок в обработке, подтверждённых и в аренде
       let documents: unknown | undefined;
-      if (["CONFIRMED", "ACTIVE"].includes(newStatus)) {
+      if (needsDocuments(newStatus)) {
         try {
           const docs = await yumeApi.getRequestDocuments(booking.requestId!);
-          documents = docs.map((doc) => {
-            const signers = doc.signs.map((s) => ({
-              name: s.signer?.name || "",
-              type: s.signer?.type || "client",
-              signed: s.status === 5,
-              signUrl: `https://yume.kz/documents/${s.uuid}`,
-            }));
-            const clientSign = doc.signs.find((s) => s.signer?.type === "client");
-            const docUrl = clientSign
-              ? `https://yume.kz/documents/${clientSign.uuid}`
-              : `https://yume.kz/documents/${doc.uuid}`;
-            const hasClient = signers.some((s) => s.type === "client");
-            const hasCompany = signers.some((s) => s.type !== "client");
-            const allSigned = hasClient && hasCompany && signers.every((s) => s.signed);
-            const partiallySigned = signers.some((s) => s.signed) && !allSigned;
-            return {
-              name: doc.name.replace(/ - \d+$/, ""),
-              allSigned,
-              partiallySigned,
-              docUrl,
-              signers,
-            };
-          });
+          documents = docs.map(mapDocument);
         } catch {
           // CRM unavailable — keep existing documents
         }
@@ -344,9 +328,13 @@ async function upsertCar(inv: YumeInventory) {
   const color = inv.extra.color || "Unknown";
   const carSlug = `${brandSlug}-${modelSlug}-${inv.car.number.toLowerCase().replace(/\s+/g, "")}`;
 
-  // Get price from tarifs (first published tarif), fallback to 15000
+  // Цена из CRM (первый опубликованный тариф) — только для машин без нашей
+  // тарифной сетки: у машины с тарифом витринную цену задаёт ступень 1–2 дня
+  // (refreshTariffDisplayPrices ниже), и минутный синк не должен её затирать.
   const publishedTarif = inv.tarifs?.find((t) => t.published);
-  const pricePerDay = publishedTarif ? Math.round(parseFloat(publishedTarif.price)) : undefined;
+  const existingCar = await prisma.car.findUnique({ where: { inventoryId: inv.id }, select: { tariffId: true } });
+  const pricePerDay =
+    publishedTarif && !existingCar?.tariffId ? Math.round(parseFloat(publishedTarif.price)) : undefined;
 
   // Upsert car by inventoryId
   // Update: only API fields (number, year, color, vin, techPassport, totalDistance, pricePerDay)

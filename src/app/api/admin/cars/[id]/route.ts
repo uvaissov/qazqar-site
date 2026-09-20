@@ -1,5 +1,6 @@
 import { requireSection } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { refreshDisplayPrices } from "@/lib/pricing";
 import { NextResponse } from "next/server";
 import { normalizePhone } from "@/lib/phone";
 
@@ -67,6 +68,7 @@ export async function PUT(
       descriptionRu,
       descriptionKz,
       deposit,
+      tariffId,
       images,
     } = body;
 
@@ -131,10 +133,14 @@ export async function PUT(
         status: status || "AVAILABLE",
         slug,
         deposit: Number(deposit) || 0,
+        tariffId: tariffId || null,
         descriptionRu: descriptionRu || null,
         descriptionKz: descriptionKz || null,
       },
     });
+
+    // Витринная цена следует за тарифом
+    if (tariffId) await refreshDisplayPrices(tariffId);
 
     // Sync photos if provided
     if (Array.isArray(images)) {

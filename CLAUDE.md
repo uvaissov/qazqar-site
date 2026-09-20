@@ -18,7 +18,7 @@ src/
 ├── app/[locale]/          # Страницы с локализацией
 │   ├── (auth)/            # login, register
 │   ├── (public)/          # catalog, blog, about, faq, terms
-│   ├── admin/             # Админ-панель (cars, bookings, blog, brands, users, discounts, reviews, faq)
+│   ├── admin/             # Админ-панель (cars, bookings, blog, brands, users, tariffs, reviews, faq)
 │   ├── cabinet/           # Личный кабинет пользователя
 │   └── api/               # REST API (auth, bookings, admin/*, cabinet/*)
 ├── components/            # Компоненты по фичам (admin, auth, cabinet, car, catalog, home, layout, ui)
@@ -33,7 +33,8 @@ src/
 - **User** — роли `CLIENT` / `MANAGER` / `ADMIN` (см. «Ролевая модель» ниже)
 - **CarBrand** → **CarModel** → **Car** — каталог авто (статусы: AVAILABLE/RENTED/MAINTENANCE)
 - **Booking** — заявки на аренду (PENDING → CONFIRMED → ACTIVE → COMPLETED/CANCELLED). `source` — откуда пришла: `SITE` / `MOBILE` (определяется на бэке по заголовку `X-Client-Platform` или UA, см. `src/lib/booking-source.ts`) / `CRM` (подтянута синком). Уходит в комментарий CRM, Telegram и фильтр в `/admin/bookings`.
-- **BlogPost**, **Review**, **Discount**, **FaqItem** — контент
+- **Tariff** → **TariffTier** — тарифные сетки (см. «Тарифы» ниже); `Discount` осталась в схеме только ради истории броней
+- **BlogPost**, **Review**, **FaqItem** — контент
 
 ## Ролевая модель админки
 
@@ -42,12 +43,24 @@ src/
 | Секция | MANAGER | ADMIN | Что входит |
 |---|---|---|---|
 | dashboard, bookings, users, content, smsLog, cars | ✔ | ✔ | заявки (в т.ч. смена авто, пульт), пользователи (просмотр, привязка к CRM), блог/FAQ/отзывы/баннеры/медиа, журнал SMS, автопарк (авто, марки/модели, синк с CRM) |
-| discounts, surcharges, settings, staff | — | ✔ | скидки, надбавки, настройки/адреса/MinIO, создание сотрудников и роли |
+| tariffs, surcharges, settings, staff | — | ✔ | тарифы, надбавки, настройки/адреса/MinIO, создание сотрудников и роли |
 
 - В API: `requireSection("bookings")` для менеджерских роутов, `requireAdmin()` — только админ. Новый роут под `/api/admin/*` **обязан** вызывать одно из двух.
 - Клиенты регистрируются сами. Сотрудников (MANAGER/ADMIN) создаёт только админ: `POST /api/admin/users` `{firstName, lastName, email, password, role}`; роли меняет `PATCH /api/admin/users/[id]` — тоже только админ, свою роль менять нельзя.
 - Менеджер в разделе «Пользователи» видит список и привязку к CRM; смена ролей, удаление и создание ему не показываются и на бэке закрыты.
 - Менеджера, зашедшего в чужую секцию по URL, middleware отправляет на `/admin` (не на логин — он авторизован).
+
+## Тарифы (цена аренды)
+
+Цена считается **только** в `src/lib/pricing.ts` (`quote()`): ступень тарифной сетки по числу дней × цена сезона. Им пользуются `GET /api/catalog/[id]/price` и `POST /api/bookings` — новых расчётов в роутах и компонентах не заводить. Дизайн: `docs/plans/2026-09-20-tariff-grid-design.md`.
+
+- `Tariff` (имя, депозит, active) → `TariffTier` (minDays..maxDays, `priceSummer`, `priceWinter`); ступени идут подряд с 1 дня (`validateTiers`), последняя задаёт потолок срока — дольше бронировать нельзя (`MAX_DAYS_EXCEEDED`). Машина без тарифа не бронируется (`NO_TARIFF`), в каталоге остаётся.
+- Сезон — по дате **начала** аренды, границы лета в `app_settings` (`seasonSummerFrom`/`seasonSummerTo`, по умолчанию май–октябрь), месяц берётся по Астане.
+- Депозит: `Car.deposit > 0` переопределяет депозит тарифа.
+- `Car.pricePerDay` — витринная цена (каталог, фильтры, группировка): у машины с тарифом это ступень 1–2 дня текущего сезона (`refreshDisplayPrices`); синк инвентаря её из CRM не затирает и раз в час пересчитывает по сезону.
+- В CRM (`tarif_price`) уходит цена ступени за сутки — итог в CRM совпадает с нашим.
+- Скидок больше нет: `/price` отдаёт `discountPercent: 0`, `discounts: []` только ради старых сборок мобилки.
+- Импорт из прайс-листа: `npx tsx scripts/import-tariffs.ts [--apply]` (данные в `prisma/seed/tariffs.json`), привязывает машины по бренду/модели/году.
 
 ## Интеграция с Yume Cloud CRM API
 
@@ -122,6 +135,10 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 | 160 | Договор аренды |
 | 161 | Акт приема передачи |
 | 162 | Путевой лист |
+
+### Документы на подписание
+
+CRM генерирует комплект (договор, акт, путевой акт) сразу при создании заявки, поэтому документы показываются с момента подачи: статусы `PENDING`/`CONFIRMED`/`ACTIVE` — единый список `DOCUMENT_STATUSES` + `needsDocuments()` в `src/lib/yume/document-signs.ts`, им пользуются оба синка (`sync.ts`, `sync-bookings.ts`), страница кабинета и `/api/cabinet/bookings`. Маппер CRM-документа один — `mapDocument` там же (статусы подписи: 0 — нет, 2 — клиент, 5 — компания); раньше копии маппера в `sync.ts` и `page.tsx` держали старый баг `status === 5`, из-за которого подпись водителя не засчитывалась — новые копии не заводить. Мобилке уходит `signDocuments` — все документы заявки с признаком `signed` (подпись водителя, `clientSigned`); подписанные из списка не пропадают.
 
 ### Живые статусы заявок (SSE)
 

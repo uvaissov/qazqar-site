@@ -24,7 +24,7 @@ export const ADMIN_SECTIONS = [
   "content", // блог, FAQ, отзывы, баннеры, медиа/загрузки
   "smsLog",
   "cars", // авто, марки/модели, синк с CRM
-  "discounts",
+  "tariffs",
   "surcharges",
   "settings", // настройки, адреса, восстановление MinIO
   "staff", // создание сотрудников и назначение ролей
@@ -67,7 +67,7 @@ const PAGE_SECTIONS: Record<string, AdminSection> = {
   "sms-log": "smsLog",
   cars: "cars",
   brands: "cars",
-  discounts: "discounts",
+  tariffs: "tariffs",
   surcharges: "surcharges",
   settings: "settings",
 };
