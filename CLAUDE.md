@@ -123,6 +123,12 @@ Flutter App  →  qazqar-site (Next.js API)  →  Yume Cloud CRM API
 | 161 | Акт приема передачи |
 | 162 | Путевой лист |
 
+### Живые статусы заявок (SSE)
+
+У Yume нет вебхуков, а `/v1/notifications/` содержит только `transaction_*` и `request_time_exceed` — смены статуса заявки там нет. Источник событий — наш поллер `syncActiveBookings` (раз в минуту) и роуты кабинета (отмена/выдача/сдача): они пишут в шину `src/lib/events/booking-events.ts` (in-process EventEmitter на globalThis; при нескольких инстансах — заменить на Redis pub/sub). `GET /api/cabinet/bookings/events` — SSE-поток для мобилки (Bearer) и кабинета (куки, компонент `BookingsLive` → `router.refresh()`), фильтр по userId/clientId, heartbeat 25 с.
+
+**nginx**: для этого пути отдельный `location = /api/cabinet/bookings/events` с `proxy_buffering off`, `proxy_read_timeout 3600s` и `add_header X-Accel-Buffering no always` — заголовок от приложения nginx исполняет, но дальше на внешний TLS-шлюз не пропускает, а шлюз без него буферизует ответ целиком (снаружи SSE висел без байтов). Образец — `deploy/nginx/qazqar.conf`.
+
 ### Смена автомобиля в заявке (админка)
 
 `/admin/bookings/[id]` → «Сменить автомобиль» (только `PENDING`/`CONFIRMED`, см. `CAR_CHANGEABLE_STATUSES`). Кандидаты — `getAlternativeCars` (`src/lib/data/booking-alternatives.ts`): та же группа (модель/год/цвет/цена, как группировка каталога), свободны по локальным броням **и** по расписанию CRM. Замена — `changeBookingCar` (`src/lib/data/change-booking-car.ts`): сначала `bulk_update` в CRM + комментарий, потом локальный `carId` под advisory lock. `syncUserBookings` обновляет `carId` из CRM, так что смена машины менеджером в самой CRM тоже доезжает до кабинета и мобилки.

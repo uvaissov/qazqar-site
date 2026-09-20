@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { emitBookingChanged } from "@/lib/events/booking-events";
 import { getSession } from "@/lib/auth";
 import { getOwnedBooking } from "@/lib/data/owned-booking";
 import { yumeApi } from "@/lib/yume/api";
@@ -36,6 +37,15 @@ export async function PATCH(
       status: "CANCELLED",
       ...(reason && { cancellationReason: reason }),
     },
+  });
+  // Второе устройство того же клиента (сайт ↔ мобилка) узнаёт об отмене по SSE.
+  emitBookingChanged({
+    bookingId: booking.id,
+    requestId: booking.requestId,
+    userId: booking.userId,
+    clientId: booking.user?.clientId ?? null,
+    status: "CANCELLED",
+    prevStatus: booking.status,
   });
 
   // Cancel in Yume CRM and add reason as comment

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { emitBookingChanged } from "@/lib/events/booking-events";
 import { yumeApi } from "./api";
 import { mapCrmStatus } from "./booking-status";
 import { mapDocument, missingTemplates } from "./document-signs";
@@ -269,6 +270,21 @@ export async function syncUserBookings(userId: string): Promise<number> {
       },
     });
     synced++;
+
+    // Статус сменился здесь, а не в минутном поллере (он проиграл гонку:
+    // клиент открыл список раньше) — поллер уже не увидит разницы и не
+    // пошлёт событие. Шлём сами, иначе второе устройство того же клиента
+    // так и останется со старым статусом.
+    if (existing && existing.status !== status) {
+      emitBookingChanged({
+        bookingId: existing.id,
+        requestId: req.id,
+        userId: existing.userId ?? user.id,
+        clientId: user.clientId,
+        status,
+        prevStatus: existing.status,
+      });
+    }
 
     // Запись в CRM — только после upsert: до него брони может не быть в БД,
     // и захватывать было бы нечего.

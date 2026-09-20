@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { yumeApi } from "./api";
 import type { YumeInventory, YumeScheduleInventory } from "./api";
 import { CrmRequestStatus, mapCrmStatus } from "./booking-status";
+import { emitBookingChanged } from "@/lib/events/booking-events";
 
 const STATUS_INTERVAL = 60_000; // 1 minute — car statuses (schedules)
 const BOOKINGS_INTERVAL = 60_000; // 1 minute — active booking status polling
@@ -166,7 +167,14 @@ async function syncActiveBookings() {
       requestId: { not: null },
       status: { in: ["PENDING", "CONFIRMED", "ACTIVE"] },
     },
-    select: { id: true, requestId: true, status: true, depositAmount: true },
+    select: {
+      id: true,
+      requestId: true,
+      status: true,
+      depositAmount: true,
+      userId: true,
+      user: { select: { clientId: true } },
+    },
   });
 
   if (activeBookings.length === 0) return;
@@ -276,6 +284,15 @@ async function syncActiveBookings() {
         if (newStatus !== booking.status) {
           updated++;
           console.log(`[Sync] Booking ${booking.id} (CRM #${booking.requestId}): ${booking.status} → ${newStatus}`);
+          // Мобилка слушает SSE — пусть обновит список, не дожидаясь pull-to-refresh.
+          emitBookingChanged({
+            bookingId: booking.id,
+            requestId: booking.requestId,
+            userId: booking.userId,
+            clientId: booking.user?.clientId ?? null,
+            status: newStatus,
+            prevStatus: booking.status,
+          });
         }
       }
     } catch (err) {

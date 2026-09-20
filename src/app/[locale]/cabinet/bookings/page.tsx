@@ -6,6 +6,7 @@ import { yumeApi } from "@/lib/yume/api";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import BookingsList from "@/components/cabinet/BookingsList";
+import BookingsLive from "@/components/cabinet/BookingsLive";
 
 function mapDocuments(docs: Awaited<ReturnType<typeof yumeApi.getRequestDocuments>>): BookingDocument[] {
   return docs.map((doc) => {
@@ -109,6 +110,7 @@ export default async function CabinetBookingsPage() {
   return (
     <div>
       <h2 className="mb-6 text-xl font-semibold text-gray-900">{t("bookings")}</h2>
+      <BookingsLive />
       <BookingsList bookings={serialized} />
     </div>
   );

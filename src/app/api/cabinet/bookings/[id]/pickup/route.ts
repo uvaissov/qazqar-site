@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { emitBookingChanged } from "@/lib/events/booking-events";
 import { getSession } from "@/lib/auth";
 import { deleteFilesQuietly, uploadFile } from "@/lib/minio";
 import { yumeApi } from "@/lib/yume/api";
@@ -180,6 +181,15 @@ export async function POST(
         status: true,
         pickupDocuments: true,
       },
+    });
+    // Плашка пульта/список на других устройствах клиента — по SSE.
+    emitBookingChanged({
+      bookingId: booking.id,
+      requestId: booking.requestId,
+      userId: booking.userId,
+      clientId: booking.user?.clientId ?? null,
+      status: "ACTIVE",
+      prevStatus: booking.status,
     });
 
     return NextResponse.json({
