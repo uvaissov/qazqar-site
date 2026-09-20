@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { isSignSigned, mapDocument, missingTemplates } from "./document-signs";
+import {
+  cachedDocuments,
+  isSignSigned,
+  mapDocument,
+  missingTemplates,
+  needsDocuments,
+  clientSigned,
+} from "./document-signs";
 import type { YumeDocument, YumeDocumentTemplate } from "./api";
 
 // Статусы взяты с боевых документов Yume:
@@ -114,5 +121,42 @@ describe("mapDocument", () => {
     const m = mapDocument(d);
     expect(m.allSigned).toBe(false);
     expect(m.partiallySigned).toBe(false);
+  });
+});
+
+describe("needsDocuments", () => {
+  test("документы показываются на обработке, при подтверждении и в аренде", () => {
+    expect(["PENDING", "CONFIRMED", "ACTIVE"].map(needsDocuments)).toEqual([true, true, true]);
+  });
+
+  test("после возврата и по отменённым — нет", () => {
+    expect(["RETURN_PENDING", "COMPLETED", "CANCELLED"].map(needsDocuments)).toEqual([
+      false,
+      false,
+      false,
+    ]);
+  });
+});
+
+describe("clientSigned", () => {
+  test("подпись водителя поставлена — независимо от подписи компании", () => {
+    expect(clientSigned(mapDocument(doc({ signs: [sign("client", 2), sign("company", 0)] })))).toBe(true);
+    expect(clientSigned(mapDocument(doc({ signs: [sign("client", 0), sign("company", 5)] })))).toBe(false);
+  });
+
+  test("без подписанта-клиента документ не считается подписанным водителем", () => {
+    expect(clientSigned(mapDocument(doc({ signs: [sign("company", 5)] })))).toBe(false);
+  });
+});
+
+describe("cachedDocuments", () => {
+  test("фото возврата (строки) и пустое поле — не документы", () => {
+    expect(cachedDocuments(["returns/1.jpg"])).toEqual([]);
+    expect(cachedDocuments(null)).toEqual([]);
+  });
+
+  test("кэш документов возвращается как есть", () => {
+    const cached = [mapDocument(doc({}))];
+    expect(cachedDocuments(cached)).toEqual(cached);
   });
 });

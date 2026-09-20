@@ -11,6 +11,22 @@ export function isSignSigned(status: number): boolean {
 }
 
 /**
+ * Статусы заявки, при которых кабинет и мобилка показывают документы на
+ * подписание. CRM генерирует комплект сразу при создании заявки, поэтому
+ * подписывать можно уже «на обработке» (PENDING), не дожидаясь
+ * подтверждения менеджером; после завершения аренды показывать нечего.
+ */
+export const DOCUMENT_STATUSES: ReadonlySet<string> = new Set([
+  "PENDING",
+  "CONFIRMED",
+  "ACTIVE",
+]);
+
+export function needsDocuments(status: string): boolean {
+  return DOCUMENT_STATUSES.has(status);
+}
+
+/**
  * Шаблоны, по которым для заявки ещё не создан документ.
  *
  * Список шаблонов берётся из CRM, а не хардкодится: там уже появился новый
@@ -74,4 +90,22 @@ export function mapDocument(doc: YumeDocument): MappedDocument {
     docUrl,
     signers,
   };
+}
+
+/**
+ * Подпись водителя поставлена. Подпись компании здесь не смотрим: от
+ * водителя после его подписи ничего не зависит, и в мобилке документ
+ * показывается как подписанный, а не «ждёт компанию».
+ */
+export function clientSigned(doc: MappedDocument): boolean {
+  return doc.signers.some((s) => s.type === "client" && s.signed);
+}
+
+/** `Booking.documents` из БД в типизированном виде; фото возврата (строки) — не документы. */
+export function cachedDocuments(raw: unknown): MappedDocument[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (d): d is MappedDocument =>
+      typeof d === "object" && d !== null && Array.isArray((d as MappedDocument).signers)
+  );
 }

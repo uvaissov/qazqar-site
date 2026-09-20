@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { emitBookingChanged } from "@/lib/events/booking-events";
 import { yumeApi } from "./api";
 import { mapCrmStatus } from "./booking-status";
-import { mapDocument, missingTemplates } from "./document-signs";
+import { mapDocument, missingTemplates, needsDocuments } from "./document-signs";
 import type { MappedDocument } from "./document-signs";
 import { normalizePhone } from "@/lib/phone";
 import { getBoolSetting, SETTING_KEYS } from "@/lib/settings";
@@ -165,11 +165,11 @@ export async function syncUserBookings(userId: string): Promise<number> {
     // Неизвестный статус оставляет заявку как есть; PENDING — только для новых.
     const status = mapCrmStatus(req.status, existing?.status ?? "PENDING");
 
-    // Fetch documents for confirmed/active bookings. Здесь только чтение —
+    // Документы — для заявок в обработке, подтверждённых и в аренде. Здесь только чтение —
     // всё, что пишет в CRM, идёт после upsert, под захватом заявки.
-    const needsDocuments = ["CONFIRMED", "ACTIVE"].includes(status);
+    const withDocuments = needsDocuments(status);
     let documents: unknown | undefined;
-    if (needsDocuments) {
+    if (withDocuments) {
       try {
         const docs = await yumeApi.getRequestDocuments(req.id);
         console.log(`[SyncBookings] CRM #${req.id}: ${docs.length} docs fetched`);
@@ -288,7 +288,7 @@ export async function syncUserBookings(userId: string): Promise<number> {
 
     // Запись в CRM — только после upsert: до него брони может не быть в БД,
     // и захватывать было бы нечего.
-    if (needsDocuments && (autoGenerate || autoSign)) {
+    if (withDocuments && (autoGenerate || autoSign)) {
       const refreshed = await ensureRequestDocuments(req.id, user.clientId, {
         autoGenerate,
         autoSign,

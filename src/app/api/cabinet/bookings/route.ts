@@ -2,6 +2,11 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { fuelTypeLabel, transmissionLabel } from "@/lib/utils";
 import { syncUserBookings } from "@/lib/yume/sync-bookings";
+import {
+  cachedDocuments,
+  clientSigned,
+  needsDocuments,
+} from "@/lib/yume/document-signs";
 import { NextResponse } from "next/server";
 
 const MINIO_PUBLIC_URL = process.env.NEXT_PUBLIC_MINIO_URL || "";
@@ -53,6 +58,18 @@ export async function GET() {
   // Transform car to MarkDto-compatible format for Flutter app
   const result = bookings.map((b) => ({
     ...b,
+    // Документы заявки на подписание — пока заявка в обработке, подтверждена
+    // или в аренде. Подписанные остаются в списке с признаком `signed`:
+    // водитель должен видеть, что уже подписал. Источник — кэш `documents`,
+    // который только что обновил syncUserBookings; в CRM отсюда не ходим.
+    // Имя поля не `documents`: оно занято фотоотчётом возврата (см. выше).
+    signDocuments: needsDocuments(b.status)
+      ? cachedDocuments(b.documents).map((d) => ({
+          name: d.name,
+          url: d.docUrl,
+          signed: clientSigned(d),
+        }))
+      : [],
     returnReport:
       b.status === "RETURN_PENDING" || b.status === "COMPLETED"
         ? (() => {

@@ -3,30 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma/client";
 import { syncUserBookings } from "@/lib/yume/sync-bookings";
 import { yumeApi } from "@/lib/yume/api";
+import {
+  cachedDocuments,
+  mapDocument,
+  needsDocuments,
+  type MappedDocument,
+} from "@/lib/yume/document-signs";
 import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import BookingsList from "@/components/cabinet/BookingsList";
 import BookingsLive from "@/components/cabinet/BookingsLive";
-
-function mapDocuments(docs: Awaited<ReturnType<typeof yumeApi.getRequestDocuments>>): BookingDocument[] {
-  return docs.map((doc) => {
-    const signers = doc.signs.map((s) => ({
-      name: s.signer?.name || "",
-      type: s.signer?.type || "client",
-      signed: s.status === 5,
-      signUrl: `https://yume.kz/documents/${s.uuid}`,
-    }));
-    const clientSign = doc.signs.find((s) => s.signer?.type === "client");
-    const docUrl = clientSign
-      ? `https://yume.kz/documents/${clientSign.uuid}`
-      : `https://yume.kz/documents/${doc.uuid}`;
-    const hasClient = signers.some((s) => s.type === "client");
-    const hasCompany = signers.some((s) => s.type !== "client");
-    const allSigned = hasClient && hasCompany && signers.every((s) => s.signed);
-    const partiallySigned = signers.some((s) => s.signed) && !allSigned;
-    return { name: doc.name.replace(/ - \d+$/, ""), allSigned, partiallySigned, docUrl, signers };
-  });
-}
 
 export default async function CabinetBookingsPage() {
   const session = await getSession();
@@ -63,16 +49,17 @@ export default async function CabinetBookingsPage() {
     ],
   });
 
-  // Fetch documents on-demand from CRM for CONFIRMED/ACTIVE bookings, save to DB
-  const docsMap: Record<string, BookingDocument[]> = {};
+  // Документы читаем из CRM на лету для заявок в обработке, подтверждённых
+  // и в аренде (см. DOCUMENT_STATUSES) и обновляем кэш в БД
+  const docsMap: Record<string, MappedDocument[]> = {};
   const bookingsWithDocs = bookings.filter(
-    (b) => b.requestId && ["CONFIRMED", "ACTIVE"].includes(b.status)
+    (b) => b.requestId && needsDocuments(b.status)
   );
   await Promise.all(
     bookingsWithDocs.map(async (b) => {
       try {
         const docs = await yumeApi.getRequestDocuments(b.requestId!);
-        const mapped = mapDocuments(docs);
+        const mapped = docs.map(mapDocument);
         docsMap[b.id] = mapped;
         // Save to DB cache (fire-and-forget)
         prisma.booking.update({
@@ -81,7 +68,7 @@ export default async function CabinetBookingsPage() {
         }).catch(() => {});
       } catch {
         // CRM unavailable — use cached from DB
-        docsMap[b.id] = (b.documents as BookingDocument[] | null) || [];
+        docsMap[b.id] = cachedDocuments(b.documents);
       }
     })
   );
@@ -115,11 +102,3 @@ export default async function CabinetBookingsPage() {
     </div>
   );
 }
-
-type BookingDocument = {
-  name: string;
-  allSigned: boolean;
-  partiallySigned: boolean;
-  docUrl: string;
-  signers: { name: string; type: string; signed: boolean; signUrl: string }[];
-};
