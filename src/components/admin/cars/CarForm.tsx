@@ -33,6 +33,7 @@ interface CarData {
   seats: number;
   hasAC: boolean;
   hasRemote: boolean;
+  isHidden: boolean;
   remotePhone: string | null;
   deposit: number;
   tariffId: string | null;
@@ -99,6 +100,7 @@ export default function CarForm({ mode, car, models, tariffs }: CarFormProps) {
   const [seats, setSeats] = useState(car?.seats?.toString() || "5");
   const [hasAC, setHasAC] = useState(car?.hasAC ?? true);
   const [hasRemote, setHasRemote] = useState(car?.hasRemote ?? false);
+  const [isHidden, setIsHidden] = useState(car?.isHidden ?? false);
   const [remotePhone, setRemotePhone] = useState(car?.remotePhone ?? "");
   const [deposit, setDeposit] = useState(car?.deposit?.toString() || "0");
   const [tariffId, setTariffId] = useState(car?.tariffId ?? "");
@@ -172,6 +174,7 @@ export default function CarForm({ mode, car, models, tariffs }: CarFormProps) {
       seats: Number(seats),
       hasAC,
       hasRemote,
+      isHidden,
       remotePhone: hasRemote ? normalizedRemotePhone : null,
       deposit: Number(deposit) || 0,
       tariffId: tariffId || null,
@@ -415,6 +418,23 @@ export default function CarForm({ mode, car, models, tariffs }: CarFormProps) {
               className="text-sm font-medium text-gray-700"
             >
               {t("ac")}
+            </label>
+          </div>
+
+          {/* Hidden from site & mobile */}
+          <div className="flex items-center gap-2 pt-6">
+            <input
+              type="checkbox"
+              id="isHidden"
+              checked={isHidden}
+              onChange={(e) => setIsHidden(e.target.checked)}
+              className="w-4 h-4 rounded border-gray-300 text-cyan-500 focus:ring-cyan-500"
+            />
+            <label
+              htmlFor="isHidden"
+              className="text-sm font-medium text-gray-700"
+            >
+              {t("hideFromCatalog")}
             </label>
           </div>
 

@@ -14,6 +14,7 @@ interface CarWithModel {
   transmission: string;
   status: string;
   isArchived: boolean;
+  isHidden: boolean;
   availableFrom: string | null;
   nextBookingAt: string | null;
   totalDistance: number;
@@ -82,6 +83,11 @@ export default function CarsList({ cars }: CarsListProps) {
 
     return (
       <div className="space-y-1">
+        {car.isHidden && (
+          <span className="inline-flex items-center px-2.5 py-0.5 mr-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+            {t("hidden")}
+          </span>
+        )}
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[car.status] || "bg-gray-100 text-gray-700"}`}
         >

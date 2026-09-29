@@ -1,5 +1,6 @@
 import { BLOCKING_BOOKING_STATUSES } from "@/lib/data/cars";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_CAR_WHERE } from "@/lib/data/cars";
 import { fuelTypeLabel, transmissionLabel } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {
       status: "AVAILABLE",
-      isArchived: false,
+      ...PUBLIC_CAR_WHERE,
     };
 
     if (transmission) {

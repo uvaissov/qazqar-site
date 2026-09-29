@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_CAR_WHERE } from "@/lib/data/cars";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const models = await prisma.carModel.findMany({
       where: {
         ...(brandSlug ? { brand: { slug: brandSlug } } : {}),
-        ...(all ? {} : { cars: { some: { isArchived: false } } }),
+        ...(all ? {} : { cars: { some: PUBLIC_CAR_WHERE } }),
       },
       orderBy: { name: "asc" },
       select: {
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
         name: true,
         slug: true,
         brand: { select: { id: true, name: true, slug: true } },
-        _count: { select: { cars: { where: { isArchived: false } } } },
+        _count: { select: { cars: { where: PUBLIC_CAR_WHERE } } },
       },
     });
 

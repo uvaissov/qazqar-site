@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isCarPublic } from "@/lib/data/cars";
 import { isQuoteError, quote } from "@/lib/pricing";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -59,11 +60,12 @@ export async function GET(
         deposit: true,
         status: true,
         isArchived: true,
+        isHidden: true,
         tariff: { include: { tiers: true } },
       },
     });
 
-    if (!car || car.isArchived || car.status !== "AVAILABLE") {
+    if (!car || !isCarPublic(car) || car.status !== "AVAILABLE") {
       return NextResponse.json(
         { error: "Car not found" },
         { status: 404 }

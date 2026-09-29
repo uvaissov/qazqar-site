@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { yumeApi } from "@/lib/yume/api";
 import { CrmRequestStatus } from "@/lib/yume/booking-status";
-import { BLOCKING_BOOKING_STATUSES } from "@/lib/data/cars";
+import { BLOCKING_BOOKING_STATUSES, PUBLIC_CAR_WHERE } from "@/lib/data/cars";
 
 /**
  * Подбор машин на замену в заявке.
@@ -71,7 +71,7 @@ export async function getAlternativeCars(booking: BookingForAlternatives): Promi
         year: car.year,
         color: car.color,
         pricePerDay: car.pricePerDay,
-        isArchived: false,
+        ...PUBLIC_CAR_WHERE,
         bookings: {
           none: {
             status: { in: [...BLOCKING_BOOKING_STATUSES] },

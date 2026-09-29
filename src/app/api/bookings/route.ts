@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isCarPublic } from "@/lib/data/cars";
 import { getSession, signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
 import { yumeApi, YumeApiError } from "@/lib/yume/api";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
       where: { id: carId },
       include: { model: { include: { brand: true } }, tariff: { include: { tiers: true } } },
     });
-    if (!car || car.isArchived) {
+    if (!car || !isCarPublic(car)) {
       return NextResponse.json(
         { error: "Car not found" },
         { status: 400 }

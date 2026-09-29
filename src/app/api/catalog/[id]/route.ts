@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { isCarPublic } from "@/lib/data/cars";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -40,14 +41,14 @@ export async function GET(
         },
       });
 
-      if (!bySlug || bySlug.isArchived) {
+      if (!bySlug || !isCarPublic(bySlug)) {
         return NextResponse.json({ error: "Car not found" }, { status: 404 });
       }
 
       return NextResponse.json(formatCar(bySlug));
     }
 
-    if (car.isArchived) {
+    if (!isCarPublic(car)) {
       return NextResponse.json({ error: "Car not found" }, { status: 404 });
     }
 

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_CAR_WHERE } from "@/lib/data/cars";
 
 // Sitemap читает БД (авто, блог) — генерируем в рантайме, а не на сборке,
 // где база недоступна. Иначе `next build` падает на /sitemap.xml.
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [cars, blogPosts] = await Promise.all([
     prisma.car.findMany({
-      where: { status: "AVAILABLE", isArchived: false },
+      where: { status: "AVAILABLE", ...PUBLIC_CAR_WHERE },
       select: { slug: true, updatedAt: true },
     }),
     prisma.blogPost.findMany({

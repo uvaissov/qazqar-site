@@ -26,6 +26,14 @@ export const BLOCKING_BOOKING_STATUSES = [
   "RETURN_PENDING",
 ] as const;
 
+/// Условие «авто видно клиентам»: не удалено в CRM и не скрыто менеджером.
+/// Единое для каталога, карточки, бронирования и sitemap.
+export const PUBLIC_CAR_WHERE = { isArchived: false, isHidden: false } as const;
+
+export function isCarPublic(car: { isArchived: boolean; isHidden: boolean }): boolean {
+  return !car.isArchived && !car.isHidden;
+}
+
 // Helper: extract image URLs from car photos relation
 export function getCarImages(car: { photos: { photo: { url: string } }[] }): string[] {
   return car.photos.map((cp) => cp.photo.url);
@@ -41,7 +49,7 @@ export async function getCars(filters?: {
   dateTo?: string;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = { isArchived: false };
+  const where: any = { ...PUBLIC_CAR_WHERE };
   // Марка и модель живут в одном where.model — присваивать его дважды нельзя,
   // второй фильтр затёр бы первый. Собираем условие по частям.
   if (filters?.brandSlug || filters?.modelSlug) {
@@ -118,10 +126,10 @@ export async function getGroupedCars(filters?: Parameters<typeof getCars>[0]) {
   return grouped;
 }
 
-/** Публичная карточка: архивное (удалённое в CRM) авто отдаём как отсутствующее. */
+/** Публичная карточка: архивное (удалённое в CRM) или скрытое авто отдаём как отсутствующее. */
 export async function getCarBySlug(slug: string) {
   return prisma.car.findUnique({
-    where: { slug, isArchived: false },
+    where: { slug, ...PUBLIC_CAR_WHERE },
     include: carInclude,
   });
 }
@@ -135,7 +143,7 @@ export async function getBrands() {
 
 export async function getSimilarCars(carId: string, modelId: string, limit = 3) {
   return prisma.car.findMany({
-    where: { modelId, id: { not: carId }, status: "AVAILABLE", isArchived: false },
+    where: { modelId, id: { not: carId }, status: "AVAILABLE", ...PUBLIC_CAR_WHERE },
     include: carInclude,
     take: limit,
   });
