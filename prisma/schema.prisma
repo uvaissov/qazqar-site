@@ -189,6 +189,9 @@ model BlogPost {
   titleKz    String   @default("")
   contentRu  String
   contentKz  String   @default("")
+  /// meta description для поисковиков; пусто — берётся заголовок
+  descriptionRu String @default("")
+  descriptionKz String @default("")
   coverImage String?
   published  Boolean  @default(false)
   authorId   String

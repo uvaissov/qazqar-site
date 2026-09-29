@@ -3,6 +3,44 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+// Старый сайт qazqar.kz (Laravel) — URL, которые проиндексированы в Google/Яндексе
+// или реально запрашиваются по логам nginx. 301, а не 308 (дефолт Next для
+// permanent): Яндекс надёжно склеивает именно 301.
+const legacyRedirects: [source: string, destination: string][] = [
+  // Блог: /p/{slug} отдаётся как есть (rewrites ниже), тут только хвосты
+  ["/p/:slug/:id", "/p/:slug"],
+  ["/c/:path*", "/p"],
+  ["/t/:tag", "/p"],
+  ["/g/:id*", "/ru"],
+  // Каноничный адрес русского блога — /p (src/lib/blog-url.ts)
+  ["/ru/blog", "/p"],
+  ["/ru/blog/:slug", "/p/:slug"],
+  ["/ru/p/:path*", "/p/:path*"],
+  ["/kz/p/:slug", "/kz/blog/:slug"],
+  // Каталог: /show/{id} — id «марки» старого бэкенда, лендинги — модель+год.
+  // Новые авто адресуются по госномеру, поэтому ведём в каталог.
+  ["/catalog", "/ru/catalog"],
+  ["/show/:id", "/ru/catalog"],
+  ["/accent-2015", "/ru/catalog"],
+  ["/accent-2023", "/ru/catalog"],
+  ["/elantra-2023", "/ru/catalog"],
+  ["/camry-2016", "/ru/catalog"],
+  ["/sonata-2022", "/ru/catalog"],
+  ["/tucson-2023", "/ru/catalog"],
+  ["/k5-2021", "/ru/catalog"],
+  // Статичные страницы
+  ["/oferta", "/ru/terms"],
+  ["/terms-conditions", "/ru/terms"],
+  ["/privacy", "/ru/terms"],
+  ["/support", "/ru/about"],
+  ["/contact", "/ru/about"],
+  ["/page/:slug", "/ru"],
+  ["/index.html", "/ru"],
+  // Переключатель языка старого сайта: 7 — казахский, остальные — русский
+  ["/change-lang/7", "/kz"],
+  ["/change-lang/:id", "/ru"],
+];
+
 const nextConfig: NextConfig = {
   // Прод-сборка не должна падать на style-линте (no-explicit-any и т.п.).
   // Линт остаётся отдельным гейтом (npm run lint), на рантайм не влияет.
@@ -14,6 +52,19 @@ const nextConfig: NextConfig = {
   // Разблокируем деплой; ошибки типов чинятся отдельной задачей. TODO: вернуть в false.
   typescript: {
     ignoreBuildErrors: true,
+  },
+  async redirects() {
+    return legacyRedirects.map(([source, destination]) => ({
+      source,
+      destination,
+      statusCode: 301 as const,
+    }));
+  },
+  async rewrites() {
+    return [
+      { source: "/p", destination: "/ru/blog" },
+      { source: "/p/:slug", destination: "/ru/blog/:slug" },
+    ];
   },
   images: {
     remotePatterns: [

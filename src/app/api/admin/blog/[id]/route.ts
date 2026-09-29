@@ -44,7 +44,7 @@ export async function PUT(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const { titleRu, titleKz, slug, contentRu, contentKz, coverImage, published } = body;
+    const { titleRu, titleKz, slug, contentRu, contentKz, descriptionRu, descriptionKz, coverImage, published } = body;
 
     if (!titleRu || !slug || !contentRu) {
       return NextResponse.json(
@@ -71,6 +71,8 @@ export async function PUT(request: Request, context: RouteContext) {
         slug,
         contentRu,
         contentKz: contentKz || "",
+        descriptionRu: typeof descriptionRu === "string" ? descriptionRu.trim() : "",
+        descriptionKz: typeof descriptionKz === "string" ? descriptionKz.trim() : "",
         coverImage: coverImage || null,
         published: published ?? false,
       },

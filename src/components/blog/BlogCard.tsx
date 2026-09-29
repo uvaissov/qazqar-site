@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
+import { blogPath } from "@/lib/blog-url";
 
 type BlogPost = {
   id: string;
@@ -71,7 +72,7 @@ export default async function BlogCard({ post }: { post: BlogPost }) {
         </div>
 
         <Link
-          href={`/blog/${post.slug}`}
+          href={blogPath(locale, post.slug)}
           className="mt-4 inline-block text-cyan-500 font-semibold hover:text-cyan-600 transition-colors"
         >
           {t("readMore")} &rarr;

@@ -1,20 +1,31 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/routing";
+import Link from "next/link";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBlogPosts } from "@/lib/data/content";
+import { blogPath } from "@/lib/blog-url";
 import BlogCard from "@/components/blog/BlogCard";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("blog");
+type Params = Promise<{ locale: string }>;
+
+export async function generateMetadata(props: { params: Params }): Promise<Metadata> {
+  const { locale } = await props.params;
+  const t = await getTranslations({ locale, namespace: "blog" });
   return {
     title: `${t("title")} | Qazqar`,
     description: t("subtitle"),
+    alternates: {
+      canonical: blogPath(locale),
+      languages: { ru: blogPath("ru"), kk: blogPath("kz") },
+    },
   };
 }
 
 export default async function BlogPage(props: {
+  params: Params;
   searchParams: Promise<{ page?: string }>;
 }) {
+  const { locale } = await props.params;
+  setRequestLocale(locale);
   const searchParams = await props.searchParams;
   const t = await getTranslations("blog");
 
@@ -63,7 +74,7 @@ export default async function BlogPage(props: {
               <nav className="flex items-center justify-center gap-4 mt-10">
                 {page > 1 ? (
                   <Link
-                    href={`/blog?page=${page - 1}`}
+                    href={`${blogPath(locale)}?page=${page - 1}`}
                     className="px-4 py-2 text-sm font-medium text-cyan-500 border border-cyan-500 rounded-lg hover:bg-cyan-50 transition-colors"
                   >
                     {t("prev")}
@@ -80,7 +91,7 @@ export default async function BlogPage(props: {
 
                 {page < totalPages ? (
                   <Link
-                    href={`/blog?page=${page + 1}`}
+                    href={`${blogPath(locale)}?page=${page + 1}`}
                     className="px-4 py-2 text-sm font-medium text-cyan-500 border border-cyan-500 rounded-lg hover:bg-cyan-50 transition-colors"
                   >
                     {t("next")}

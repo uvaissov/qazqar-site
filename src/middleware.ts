@@ -113,5 +113,7 @@ export default async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  // p и p/* — старые URL блога без префикса локали (см. src/lib/blog-url.ts):
+  // next-intl иначе дописал бы к ним /ru.
+  matcher: ["/((?!api|_next|_vercel|p$|p/|.*\\..*).*)"],
 };

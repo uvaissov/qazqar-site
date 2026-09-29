@@ -2,23 +2,18 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
+import NextLink from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { getNavItems } from "./nav-items";
 import MobileMenu from "./MobileMenu";
-
-const navItems = [
-  { key: "home", href: "/" },
-  { key: "about", href: "/#about" },
-  { key: "reviews", href: "/#reviews" },
-  { key: "terms", href: "/#faq" },
-  { key: "blog", href: "/blog" },
-] as const;
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const t = useTranslations("nav");
+  const locale = useLocale();
   const tCommon = useTranslations("common");
 
   useEffect(() => {
@@ -52,14 +47,14 @@ export default function Header() {
 
           {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-6">
-            {navItems.map((item) => (
-              <Link
+            {getNavItems(locale).map((item) => (
+              <NextLink
                 key={item.key}
                 href={item.href}
                 className="text-sm text-gray-700 hover:text-cyan-500 transition-colors"
               >
                 {t(item.key)}
-              </Link>
+              </NextLink>
             ))}
           </nav>
 

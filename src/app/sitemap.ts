@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_CAR_WHERE } from "@/lib/data/cars";
+import { blogPath } from "@/lib/blog-url";
 
 // Sitemap читает БД (авто, блог) — генерируем в рантайме, а не на сборке,
 // где база недоступна. Иначе `next build` падает на /sitemap.xml.
@@ -21,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const locales = ["ru", "kz"];
   const baseUrl = "https://qazqar.kz";
 
-  const staticPages = ["", "/catalog", "/about", "/faq", "/terms", "/blog"];
+  const staticPages = ["", "/catalog", "/about", "/faq", "/terms"];
 
   const staticEntries = staticPages.flatMap((page) =>
     locales.map((locale) => ({
@@ -41,14 +42,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   );
 
+  const blogIndexEntries = locales.map((locale) => ({
+    url: `${baseUrl}${blogPath(locale)}`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   const blogEntries = blogPosts.flatMap((post) =>
     locales.map((locale) => ({
-      url: `${baseUrl}/${locale}/blog/${post.slug}`,
+      url: `${baseUrl}${blogPath(locale, post.slug)}`,
       lastModified: post.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.6,
     }))
   );
 
-  return [...staticEntries, ...carEntries, ...blogEntries];
+  return [...staticEntries, ...carEntries, ...blogIndexEntries, ...blogEntries];
 }

@@ -11,6 +11,8 @@ interface BlogPostData {
   slug: string;
   contentRu: string;
   contentKz: string;
+  descriptionRu: string;
+  descriptionKz: string;
   coverImage: string | null;
   published: boolean;
 }
@@ -51,6 +53,8 @@ export default function BlogForm({ mode, post }: BlogFormProps) {
   const [slug, setSlug] = useState(post?.slug || "");
   const [contentRu, setContentRu] = useState(post?.contentRu || "");
   const [contentKz, setContentKz] = useState(post?.contentKz || "");
+  const [descriptionRu, setDescriptionRu] = useState(post?.descriptionRu || "");
+  const [descriptionKz, setDescriptionKz] = useState(post?.descriptionKz || "");
   const [coverImage, setCoverImage] = useState(post?.coverImage || "");
   const [published, setPublished] = useState(post?.published ?? false);
   const [saving, setSaving] = useState(false);
@@ -101,6 +105,8 @@ export default function BlogForm({ mode, post }: BlogFormProps) {
       slug,
       contentRu,
       contentKz,
+      descriptionRu,
+      descriptionKz,
       coverImage: coverImage || null,
       published,
     };
@@ -211,6 +217,40 @@ export default function BlogForm({ mode, post }: BlogFormProps) {
               value={contentKz}
               onChange={(e) => setContentKz(e.target.value)}
               rows={10}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none resize-y"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* SEO description */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">
+          {t("seoDescription")}
+        </h2>
+        <p className="text-xs text-gray-500 mb-4">{t("seoDescriptionHint")}</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("descriptionRu")}
+            </label>
+            <textarea
+              value={descriptionRu}
+              onChange={(e) => setDescriptionRu(e.target.value)}
+              rows={2}
+              maxLength={300}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none resize-y"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t("descriptionKz")}
+            </label>
+            <textarea
+              value={descriptionKz}
+              onChange={(e) => setDescriptionKz(e.target.value)}
+              rows={2}
+              maxLength={300}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none resize-y"
             />
           </div>

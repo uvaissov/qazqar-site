@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { type Locale } from "@/i18n/config";
 import LayoutWrapper from "@/components/layout/LayoutWrapper";
+import Analytics from "@/components/seo/Analytics";
+import { getAnalyticsIds, getSiteVerification } from "@/lib/analytics";
 import "../globals.css";
 
 // Приложение динамическое: авторизация + живые данные из CRM-синка. Отключаем
@@ -53,6 +55,7 @@ export async function generateMetadata({
         kk: "/kz",
       },
     },
+    verification: getSiteVerification(),
     other: {
       "theme-color": "#06b6d4",
     },
@@ -70,6 +73,9 @@ export default async function LocaleLayout({
   if (!routing.locales.includes(locale as Locale)) {
     notFound();
   }
+  // Блог на /p/* приходит rewrite'ом мимо middleware next-intl (src/lib/blog-url.ts),
+  // поэтому локаль из сегмента задаём явно.
+  setRequestLocale(locale);
 
   const messages = await getMessages();
 
@@ -80,6 +86,7 @@ export default async function LocaleLayout({
           <LayoutWrapper>{children}</LayoutWrapper>
         </NextIntlClientProvider>
         <div id="datepicker-portal" />
+        <Analytics {...getAnalyticsIds()} />
       </body>
     </html>
   );

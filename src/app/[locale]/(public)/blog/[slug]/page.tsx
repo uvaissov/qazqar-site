@@ -1,40 +1,48 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getLocale, getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/routing";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBlogPostBySlug } from "@/lib/data/content";
+import { blogPath } from "@/lib/blog-url";
 import JsonLd from "@/components/seo/JsonLd";
 
-export async function generateMetadata(props: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await props.params;
-  const locale = await getLocale();
+type Params = Promise<{ locale: string; slug: string }>;
+
+export async function generateMetadata(props: { params: Params }): Promise<Metadata> {
+  const { locale, slug } = await props.params;
   const post = await getBlogPostBySlug(slug);
 
   if (!post) {
     return { title: "Not Found" };
   }
 
-  const title = locale === "kz" ? post.titleKz || post.titleRu : post.titleRu;
+  const isKz = locale === "kz";
+  const title = isKz ? post.titleKz || post.titleRu : post.titleRu;
+  const description =
+    (isKz ? post.descriptionKz || post.descriptionRu : post.descriptionRu) || title;
+  const url = blogPath(locale, slug);
 
   return {
     title: `${title} | Qazqar`,
-    description: title,
+    description,
+    alternates: {
+      canonical: url,
+      languages: { ru: blogPath("ru", slug), kk: blogPath("kz", slug) },
+    },
     openGraph: {
       title,
+      description,
+      url,
       type: "article",
       ...(post.coverImage && { images: [{ url: post.coverImage }] }),
     },
   };
 }
 
-export default async function BlogPostPage(props: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await props.params;
-  const locale = await getLocale();
+export default async function BlogPostPage(props: { params: Params }) {
+  const { locale, slug } = await props.params;
+  setRequestLocale(locale);
   const t = await getTranslations("blog");
 
   const post = await getBlogPostBySlug(slug);
@@ -104,7 +112,7 @@ export default async function BlogPostPage(props: {
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back link */}
           <Link
-            href="/blog"
+            href={blogPath(locale)}
             className="inline-block text-sm text-cyan-500 hover:text-cyan-600 transition-colors mb-6"
           >
             {t("backToBlog")}
@@ -145,7 +153,7 @@ export default async function BlogPostPage(props: {
           {/* Back link at bottom */}
           <div className="mt-10 pt-6 border-t border-gray-200">
             <Link
-              href="/blog"
+              href={blogPath(locale)}
               className="inline-block text-cyan-500 font-semibold hover:text-cyan-600 transition-colors"
             >
               {t("backToBlog")}

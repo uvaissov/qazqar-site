@@ -1,8 +1,10 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import NextLink from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { getNavItems } from "./nav-items";
 
 interface MobileMenuProps {
   open: boolean;
@@ -10,16 +12,9 @@ interface MobileMenuProps {
   isLoggedIn: boolean;
 }
 
-const navItems = [
-  { key: "home", href: "/" },
-  { key: "about", href: "/#about" },
-  { key: "reviews", href: "/#reviews" },
-  { key: "terms", href: "/#faq" },
-  { key: "blog", href: "/blog" },
-] as const;
-
 export default function MobileMenu({ open, onClose, isLoggedIn }: MobileMenuProps) {
   const t = useTranslations("nav");
+  const locale = useLocale();
   const tCommon = useTranslations("common");
 
   return (
@@ -29,15 +24,15 @@ export default function MobileMenu({ open, onClose, isLoggedIn }: MobileMenuProp
       }`}
     >
       <nav className="bg-white border-t border-gray-100 px-4 py-4 space-y-1">
-        {navItems.map((item) => (
-          <Link
+        {getNavItems(locale).map((item) => (
+          <NextLink
             key={item.key}
             href={item.href}
             onClick={onClose}
             className="block px-3 py-2 text-gray-700 hover:text-cyan-500 hover:bg-gray-50 rounded-md transition-colors"
           >
             {t(item.key)}
-          </Link>
+          </NextLink>
         ))}
 
         <Link
