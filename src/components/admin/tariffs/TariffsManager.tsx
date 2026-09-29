@@ -65,6 +65,10 @@ export default function TariffsManager({ tariffs, season }: Props) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  // Неактивные тарифы (снятые с прайса модели) по умолчанию не показываем
+  const [showInactive, setShowInactive] = useState(false);
+  const inactiveCount = tariffs.filter((t) => !t.active).length;
+  const visibleTariffs = showInactive ? tariffs : tariffs.filter((t) => t.active);
 
   const [summerFrom, setSummerFrom] = useState(String(season.summerFrom));
   const [summerTo, setSummerTo] = useState(String(season.summerTo));
@@ -233,16 +237,24 @@ export default function TariffsManager({ tariffs, season }: Props) {
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-gray-900">Тарифы ({tariffs.length})</h2>
-        {!showAdd && (
-          <button onClick={startAdd} className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700">+ Тариф</button>
-        )}
+        <h2 className="font-semibold text-gray-900">Тарифы ({visibleTariffs.length})</h2>
+        <div className="flex items-center gap-4">
+          {inactiveCount > 0 && (
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+              Показать неактивные ({inactiveCount})
+            </label>
+          )}
+          {!showAdd && (
+            <button onClick={startAdd} className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700">+ Тариф</button>
+          )}
+        </div>
       </div>
 
       {showAdd && formView}
 
       <div className="space-y-3">
-        {tariffs.map((t) => (
+        {visibleTariffs.map((t) => (
           <div key={t.id} className={`bg-white rounded-xl border ${t.active ? "border-gray-200" : "border-dashed border-gray-300 opacity-70"}`}>
             {editingId === t.id ? (
               <div className="p-1">{formView}</div>
