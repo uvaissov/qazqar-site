@@ -146,6 +146,10 @@ CRM генерирует комплект (договор, акт, путево�
 
 **nginx**: для этого пути отдельный `location = /api/cabinet/bookings/events` с `proxy_buffering off`, `proxy_read_timeout 3600s` и `add_header X-Accel-Buffering no always` — заголовок от приложения nginx исполняет, но дальше на внешний TLS-шлюз не пропускает, а шлюз без него буферизует ответ целиком (снаружи SSE висел без байтов). Образец — `deploy/nginx/qazqar.conf`.
 
+### Очередь отправки заявок в Yume
+
+`POST /api/bookings` создаёт только локальную заявку (`crmSyncStatus = PENDING`) и сразу отвечает — синхронный поход в CRM занимал секунды и плодил дубли при повторных нажатиях. Воркер `src/lib/yume/crm-queue.ts` (тик 15 с из `instrumentation.ts` + `kickCrmQueue()` после создания) привязывает клиента (`resolveClient`) и отправляет через `exportBooking` (`FOR UPDATE` + ранний выход при `requestId` — защита от двойной отправки). Итог правит то же Telegram-сообщение (`telegramMessageId`): ✅ + ссылка или ⚠️. Конфликт дат в Yume, `CAR_NOT_LINKED`, `NO_USER` → сразу `FAILED`, прочее — 5 попыток с бэкоффом. `FAILED` повторяется кнопкой в `/admin/bookings/[id]` (`POST /api/admin/bookings/[id]/crm-retry`). Дизайн: `docs/plans/2026-10-23-booking-crm-queue-design.md`.
+
 ### Смена автомобиля в заявке (админка)
 
 `/admin/bookings/[id]` → «Сменить автомобиль» (только `PENDING`/`CONFIRMED`, см. `CAR_CHANGEABLE_STATUSES`). Кандидаты — `getAlternativeCars` (`src/lib/data/booking-alternatives.ts`): та же группа (модель/год/цвет/цена, как группировка каталога), свободны по локальным броням **и** по расписанию CRM. Замена — `changeBookingCar` (`src/lib/data/change-booking-car.ts`): сначала `bulk_update` в CRM + комментарий, потом локальный `carId` под advisory lock. `syncUserBookings` обновляет `carId` из CRM, так что смена машины менеджером в самой CRM тоже доезжает до кабинета и мобилки.

@@ -31,11 +31,15 @@ export async function exportBooking(userId: string, clientId: number, bookingId:
       if (!booking.car.inventoryId) throw new Error("CAR_NOT_LINKED");
       const days = Math.ceil((booking.endDate.getTime() - booking.startDate.getTime()) / 86400_000);
       if (days <= 0) throw new Error("INVALID_DATES");
-      const comments = [`Источник: ${BOOKING_SOURCE_LABELS[booking.source]}`];
-      if (booking.pickupAddress) comments.push(`Адрес подачи: ${booking.pickupAddress.name}`);
-      if (booking.returnAddress) comments.push(`Адрес возврата: ${booking.returnAddress.name}`);
-      if (booking.depositLabel) comments.push(booking.depositLabel);
-      if (booking.comment) comments.push(booking.comment);
+      // Новые заявки несут комментарий, собранный при создании (с каналом
+      // привлечения из запроса); у старых собираем из полей брони.
+      const comments = booking.crmComment ? [booking.crmComment] : [`Источник: ${BOOKING_SOURCE_LABELS[booking.source]}`];
+      if (!booking.crmComment) {
+        if (booking.pickupAddress) comments.push(`Адрес подачи: ${booking.pickupAddress.name}`);
+        if (booking.returnAddress) comments.push(`Адрес возврата: ${booking.returnAddress.name}`);
+        if (booking.depositLabel) comments.push(booking.depositLabel);
+        if (booking.comment) comments.push(booking.comment);
+      }
       // Используем сохранённую сумму брони, а не изменившийся прайс машины.
       createdRequestId = await createCrmBooking({
         clientId, inventoryId: booking.car.inventoryId,

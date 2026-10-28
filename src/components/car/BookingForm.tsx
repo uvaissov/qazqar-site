@@ -5,7 +5,7 @@ import { trackEvent } from "@/lib/analytics-events";
 
 import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
-import { CheckCircle2, AlertCircle, Calendar, Send, MapPin } from "lucide-react";
+import { CheckCircle2, AlertCircle, Calendar, Send, MapPin, Loader2 } from "lucide-react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ru } from "date-fns/locale/ru";
 import { kk } from "date-fns/locale/kk";
@@ -50,6 +50,12 @@ function formatDateForAPI(d: Date, time: string): string {
   return `${yyyy}-${mm}-${dd} ${time}`;
 }
 
+/** UUID для idempotencyKey; randomUUID есть только в secure context (https/localhost). */
+function newIdempotencyKey(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function BookingForm({
   carId,
   deposit,
@@ -85,6 +91,12 @@ export default function BookingForm({
   const [returnAddressId, setReturnAddressId] = useState("");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Синхронный флаг против двойной отправки: state обновится только после
+  // рендера, а клик + Enter + авто-сабмит OTP успевают выстрелить раньше.
+  const submittingRef = useRef(false);
+  // Ключ идемпотентности одной попытки бронирования: повтор запроса (ретрай,
+  // дубль) сервер распознает и вернёт ту же заявку. Сбрасывается после успеха.
+  const idempotencyKeyRef = useRef<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [needsOtp, setNeedsOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -217,6 +229,8 @@ export default function BookingForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
 
@@ -261,12 +275,15 @@ export default function BookingForm({
     } catch {
       setError(t("error"));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
 
   async function handleVerifyAndSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError("");
     setSubmitting(true);
 
@@ -275,11 +292,13 @@ export default function BookingForm({
     } catch {
       setError(t("error"));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
 
   async function submitBooking(otp?: string) {
+    idempotencyKeyRef.current ??= newIdempotencyKey();
     const res = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -298,6 +317,7 @@ export default function BookingForm({
         pickupAddressId: pickupAddressId || undefined,
         returnAddressId: returnAddressId || undefined,
         withDeposit: deposit > 0 ? withDepositSelected : undefined,
+        idempotencyKey: idempotencyKeyRef.current,
       }),
     });
 
@@ -318,6 +338,7 @@ export default function BookingForm({
       return;
     }
 
+    idempotencyKeyRef.current = null;
     trackEvent("generate_lead", { lead_type: "booking", car_id: carId });
     setSuccess(true);
     setIsNewUser(!!data.newUser);
@@ -846,7 +867,12 @@ export default function BookingForm({
             disabled={submitting || !bookable || !!priceError}
             className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black uppercase tracking-widest rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-cyan-500/30 mt-2"
           >
-            {submitting ? "..." : (
+            {submitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {t("submitting")}
+              </>
+            ) : (
               <>
                  <Send className="w-5 h-5" />
                  {t("submit")}
@@ -932,7 +958,12 @@ export default function BookingForm({
             disabled={submitting || otpCode.length !== 6}
             className="w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black uppercase tracking-widest rounded-xl hover:from-cyan-400 hover:to-blue-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-cyan-500/30"
           >
-            {submitting ? "..." : (
+            {submitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                {t("submitting")}
+              </>
+            ) : (
               <>
                 <CheckCircle2 className="w-5 h-5" />
                 {t("confirmAndSubmit")}

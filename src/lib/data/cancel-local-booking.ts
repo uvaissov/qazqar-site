@@ -16,7 +16,7 @@ export async function cancelLocalBooking(id: string, reason: string | null): Pro
     if (!["PENDING", "CONFIRMED"].includes(booking.status)) {
       return { ok: false as const, status: 409 as const, error: "BOOKING_NOT_CANCELLABLE" as const };
     }
-    await tx.booking.update({ where: { id }, data: { status: "CANCELLED", cancellationReason: reason } });
+    await tx.booking.update({ where: { id }, data: { status: "CANCELLED", cancellationReason: reason, crmSyncStatus: null, crmSyncNextAt: null } });
     return { ok: true as const, event: {
       bookingId: id, requestId: null, userId: booking.userId,
       clientId: booking.user?.clientId ?? null, status: "CANCELLED", prevStatus: booking.status,

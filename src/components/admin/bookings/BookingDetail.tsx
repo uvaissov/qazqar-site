@@ -11,6 +11,8 @@ const CRM_BASE_URL = "https://qazqar.yume.cloud/orders";
 interface BookingWithCar {
   id: string;
   requestId: number | null;
+  crmSyncStatus: "PENDING" | "DONE" | "FAILED" | null;
+  crmSyncError: string | null;
   customerName: string;
   customerPhone: string;
   startDate: string;
@@ -93,6 +95,24 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
       router.refresh();
     } catch { setCancelError(t("localCancelError")); }
     finally { setCancelling(false); }
+  }
+
+  // Заявка не ушла в Yume (очередь исчерпала попытки) — ручной повтор
+  const [crmRetrying, setCrmRetrying] = useState(false);
+  const [crmRetryError, setCrmRetryError] = useState(false);
+  const crmErrorLabel = (code: string | null) =>
+    code && ["DATE_CONFLICT", "CAR_NOT_LINKED", "NO_USER"].includes(code) ? t(`crmError_${code}`) : t("crmError_other");
+
+  async function handleCrmRetry() {
+    setCrmRetrying(true);
+    setCrmRetryError(false);
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}/crm-retry`, { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as { crmSyncStatus?: string };
+      if (!res.ok || data.crmSyncStatus === "FAILED") setCrmRetryError(true);
+      router.refresh();
+    } catch { setCrmRetryError(true); }
+    finally { setCrmRetrying(false); }
   }
 
   // Смена авто: список свободных машин той же группы → PATCH .../car
@@ -247,6 +267,24 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
                   />
                 </svg>
               </a>
+            )}
+            {booking.crmSyncStatus === "PENDING" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700" />
+                {t("crmSyncPending")}
+              </span>
+            )}
+            {booking.crmSyncStatus === "FAILED" && (
+              <>
+                <span className="inline-flex items-center rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700" title={booking.crmSyncError ?? undefined}>
+                  ⚠️ {t("crmSyncFailed")}: {crmErrorLabel(booking.crmSyncError)}
+                </span>
+                <button type="button" onClick={handleCrmRetry} disabled={crmRetrying} className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 px-3 py-1.5 text-sm font-medium text-cyan-700 hover:bg-cyan-50 disabled:opacity-50">
+                  {crmRetrying && <span className="h-3 w-3 animate-spin rounded-full border-2 border-cyan-200 border-t-cyan-700" />}
+                  {t("crmRetry")}
+                </button>
+                {crmRetryError && <span role="alert" className="text-xs text-red-600">{t("crmRetryFailed")}</span>}
+              </>
             )}
             <span
               className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${

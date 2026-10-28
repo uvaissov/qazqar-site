@@ -11,6 +11,7 @@ const CRM_BASE_URL = "https://qazqar.yume.cloud/orders";
 interface BookingWithCar {
   id: string;
   requestId: number | null;
+  crmSyncStatus: "PENDING" | "DONE" | "FAILED" | null;
   customerName: string;
   customerPhone: string;
   startDate: string;
@@ -306,6 +307,12 @@ export default function BookingsList({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
+                        {booking.crmSyncStatus === "PENDING" && (
+                          <span className="whitespace-nowrap rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">⏳ {t("crmSyncPending")}</span>
+                        )}
+                        {booking.crmSyncStatus === "FAILED" && (
+                          <span className="whitespace-nowrap rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">⚠️ {t("crmSyncFailed")}</span>
+                        )}
                         {booking.requestId != null && (
                           <a
                             href={`${CRM_BASE_URL}/${booking.requestId}/all`}

@@ -38,6 +38,16 @@ export function DashboardCard({ booking }: { booking: DashboardBooking }) {
         </p>
       </Link>
 
+      {booking.requestId == null && booking.crmSyncStatus === "PENDING" && (
+        <span className="shrink-0 whitespace-nowrap text-[11px] font-medium text-amber-600" title="Отправляется в Yume CRM">
+          ⏳ Yume
+        </span>
+      )}
+      {booking.requestId == null && booking.crmSyncStatus === "FAILED" && (
+        <span className="shrink-0 whitespace-nowrap text-[11px] font-medium text-red-600" title="Не ушла в Yume CRM — откройте заявку и повторите отправку">
+          ⚠️ Не в Yume
+        </span>
+      )}
       {booking.requestId != null && (
         <a
           href={`${CRM_URL}/${booking.requestId}/all`}

@@ -38,6 +38,7 @@ export async function GET() {
     ): DashboardBooking => ({
       id: b.id,
       requestId: b.requestId,
+      crmSyncStatus: b.crmSyncStatus,
       status,
       startDate: b.startDate.toISOString(),
       endDate: b.endDate.toISOString(),

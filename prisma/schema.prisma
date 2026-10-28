@@ -171,6 +171,18 @@ model Booking {
   depositLabel       String?
   withDeposit        Boolean         @default(true)
   requestId          Int?            @unique
+  /// Ключ клиента против повторной отправки формы (двойной клик, ретрай сети).
+  idempotencyKey     String?         @unique
+  /// Очередь отправки в Yume (src/lib/yume/crm-queue.ts). null — старые заявки
+  /// и подтянутые из CRM, их отправлять не нужно.
+  crmSyncStatus      CrmSyncStatus?
+  crmSyncError       String?
+  crmSyncAttempts    Int             @default(0)
+  crmSyncNextAt      DateTime?
+  /// Комментарий для CRM, собранный при создании (там есть attribution запроса).
+  crmComment         String?
+  /// Сообщение о заявке в Telegram — правится по мере обработки очереди.
+  telegramMessageId  Int?
   pickupAddressId    String?
   returnAddressId    String?
   car                Car             @relation(fields: [carId], references: [id])
@@ -179,6 +191,7 @@ model Booking {
   user               User?           @relation(fields: [userId], references: [id])
   remoteCommands     RemoteCommand[]
 
+  @@index([crmSyncStatus, crmSyncNextAt])
   @@map("bookings")
 }
 
@@ -314,6 +327,12 @@ enum BookingStatus {
   RETURN_PENDING
   COMPLETED
   CANCELLED
+}
+
+enum CrmSyncStatus {
+  PENDING
+  DONE
+  FAILED
 }
 
 enum BookingSource {

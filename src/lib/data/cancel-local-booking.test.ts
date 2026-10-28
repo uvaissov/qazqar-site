@@ -11,7 +11,7 @@ beforeEach(() => { vi.resetAllMocks(); m.find.mockResolvedValue({ ...booking });
 test.each(["SITE", "MOBILE"])("менеджер отменяет локальную заявку из %s и уведомляет устройства клиента", async (source) => {
   m.find.mockResolvedValue({ ...booking, source });
   expect(await cancelLocalBooking("booking", "Передумал")).toEqual({ ok: true });
-  expect(m.update).toHaveBeenCalledWith({ where: { id: "booking" }, data: { status: "CANCELLED", cancellationReason: "Передумал" } });
+  expect(m.update).toHaveBeenCalledWith({ where: { id: "booking" }, data: { status: "CANCELLED", cancellationReason: "Передумал", crmSyncStatus: null, crmSyncNextAt: null } });
   expect(m.emit).toHaveBeenCalledWith(expect.objectContaining({ userId: "user", clientId: 3466, status: "CANCELLED", prevStatus: "PENDING" }));
 });
 test("повторная отмена не меняет причину и не создаёт повторное событие", async () => {

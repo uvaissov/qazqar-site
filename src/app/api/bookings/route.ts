@@ -2,10 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { isCarPublic, BLOCKING_BOOKING_STATUSES } from "@/lib/data/cars";
 import { getSession, signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
-import { YumeApiError } from "@/lib/yume/api";
-import { resolveClient } from "@/lib/yume/resolve-client";
-import { createCrmBooking } from "@/lib/yume/create-booking";
-import { notifyNewBooking } from "@/lib/telegram/notify";
+import { kickCrmQueue } from "@/lib/yume/crm-queue";
+import { newBookingNotice, notifyNewBooking } from "@/lib/telegram/notify";
 import { detectBookingSource, BOOKING_SOURCE_LABELS } from "@/lib/booking-source";
 import { normalizePhone } from "@/lib/phone";
 import { isQuoteError, quote } from "@/lib/pricing";
@@ -15,17 +13,44 @@ import { NextResponse } from "next/server";
 /** Бросается внутри транзакции при пересечении дат с существующей бронью. */
 class BookingConflictError extends Error {}
 
+/** Пауза очереди на время отправки в Telegram (таймаут Telegram — 8 с). */
+const CRM_QUEUE_HOLD_MS = 30_000;
+
+/** Ключ идемпотентности от клиента: UUID или похожий токен. */
+const IDEMPOTENCY_KEY_RE = /^[A-Za-z0-9-]{8,64}$/;
+
+/** Повтор запроса с тем же ключом — отдаём уже созданную заявку. */
+function replayResponse(existing: { id: string; carId: string }, carId: string) {
+  if (existing.carId !== carId) {
+    return NextResponse.json({ error: "IDEMPOTENCY_KEY_REUSED" }, { status: 409 });
+  }
+  return NextResponse.json({ success: true, bookingId: existing.id, newUser: false });
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const source = detectBookingSource(request);
-    const { carId, customerName, customerPhone: rawCustomerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment, pickupAddressId, returnAddressId, withDeposit } = body;
+    const { carId, customerName, customerPhone: rawCustomerPhone, customerEmail, customerIin, isResident, otpCode, startDate, endDate, comment, pickupAddressId, returnAddressId, withDeposit, idempotencyKey: rawIdempotencyKey } = body;
 
     if (!carId || !customerName || !rawCustomerPhone || !startDate || !endDate) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
+    }
+
+    // Ключ необязателен (старые сборки мобилки его не шлют), но если пришёл — валиден.
+    if (rawIdempotencyKey != null && (typeof rawIdempotencyKey !== "string" || !IDEMPOTENCY_KEY_RE.test(rawIdempotencyKey))) {
+      return NextResponse.json({ error: "INVALID_IDEMPOTENCY_KEY" }, { status: 400 });
+    }
+    const idempotencyKey: string | null = rawIdempotencyKey ?? null;
+
+    // Повтор (двойной клик, ретрай сети) — до OTP: код одноразовый, повтор
+    // упал бы на INVALID_OTP, хотя заявка уже создана.
+    if (idempotencyKey) {
+      const existing = await prisma.booking.findUnique({ where: { idempotencyKey }, select: { id: true, carId: true } });
+      if (existing) return replayResponse(existing, carId);
     }
 
     // Дальше по коду телефон ищет юзера через findUnique — по сырой строке гость
@@ -165,48 +190,20 @@ export async function POST(request: Request) {
     if (comment) crmCommentParts.push(comment);
     const crmComment = crmCommentParts.join("\n") || null;
 
-    // Send request to Yume CRM first — check for date conflicts
-    let requestId: number | undefined;
-    const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
-
-    // В том числе аккаунты из быстрой регистрации и ранее не привязанные.
-    if (user && !user.clientId) {
-      try {
-        const clientId = await resolveClient({
-          name: `${user.lastName} ${user.firstName}`.trim(),
-          email: user.email, phone: user.phone, iin: user.iin,
-        });
-        await prisma.user.updateMany({ where: { id: user.id, clientId: null }, data: { clientId } });
-        user.clientId = (await prisma.user.findUnique({ where: { id: user.id }, select: { clientId: true } }))?.clientId ?? null;
-      } catch (err) {
-        console.error(`[Booking] ${user.id}: failed to link CRM client`, err);
-      }
-    }
-
-    if (user?.clientId && car.inventoryId) {
-      try {
-        requestId = await createCrmBooking({
-          clientId: user.clientId, inventoryId: car.inventoryId,
-          startDate, endDate, pricePerDay: price.pricePerDay,
-          comment: crmComment, depositAmount: withDeposit === false ? noDepositSurcharge : depositAmount,
-          withDeposit: withDeposit !== false,
-        });
-      } catch (err) {
-        const message = (err as Error).message || "";
-        if ((err instanceof YumeApiError && err.status === 409) || message.includes("конфликт") || message.includes("schedule")) {
-          return NextResponse.json({ error: "DATE_CONFLICT" }, { status: 409 });
-        }
-        console.error("[Yume] Failed to create request in CRM:", err);
-      }
-    }
-
     // Create local booking — в транзакции с advisory-блокировкой по авто,
     // чтобы два параллельных запроса не создали пересекающиеся брони (C4).
     // hashtext превращает cuid авто в int4-ключ для pg_advisory_xact_lock.
+    // В Yume заявка уходит потом, через очередь (src/lib/yume/crm-queue.ts).
     let booking;
     try {
       booking = await prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${carId}))`;
+
+        // Параллельный дубль с тем же ключом ждал блокировку — отдаём созданную.
+        if (idempotencyKey) {
+          const existing = await tx.booking.findUnique({ where: { idempotencyKey }, select: { id: true, carId: true } });
+          if (existing) return { replay: existing, created: null };
+        }
 
         const conflict = await tx.booking.findFirst({
           where: {
@@ -218,7 +215,7 @@ export async function POST(request: Request) {
         });
         if (conflict) throw new BookingConflictError();
 
-        return tx.booking.create({
+        return { replay: null, created: await tx.booking.create({
           data: {
             carId,
             customerName,
@@ -236,38 +233,46 @@ export async function POST(request: Request) {
             source,
             comment: comment || null,
             userId,
-            requestId,
+            idempotencyKey,
+            crmSyncStatus: "PENDING",
+            // Придерживаем от тика очереди, пока не сохранён telegramMessageId,
+            // иначе «создана в Yume» некуда будет дописать.
+            crmSyncNextAt: new Date(Date.now() + CRM_QUEUE_HOLD_MS),
+            crmComment,
             pickupAddressId: pickupAddressId || null,
             returnAddressId: returnAddressId || null,
           },
-        });
+          include: { car: { include: { model: { include: { brand: true } } } } },
+        }) };
       });
     } catch (err) {
       if (err instanceof BookingConflictError) {
         return NextResponse.json({ error: "DATES_UNAVAILABLE" }, { status: 409 });
       }
+      // Тот же ключ на другую машину: блокировки разные, ловит unique-индекс.
+      if (idempotencyKey && (err as { code?: string }).code === "P2002") {
+        const existing = await prisma.booking.findUnique({ where: { idempotencyKey }, select: { id: true, carId: true } });
+        if (existing) return replayResponse(existing, carId);
+      }
       throw err;
     }
 
-    // Уведомление в Telegram о новой заявке (fire-and-forget, ошибки проглатываются).
-    await notifyNewBooking({
-      bookingId: booking.id,
-      requestId: requestId ?? null,
-      customerName,
-      customerPhone,
-      carLabel: `${car.model.brand.name} ${car.model.name} · ${car.number}`,
-      startDate: start,
-      endDate: end,
-      totalPrice: booking.totalPrice,
-      withDeposit: booking.withDeposit,
-      source,
-      comment,
+    if (booking.replay) return replayResponse(booking.replay, carId);
+    const created = booking.created;
+
+    // Уведомление в Telegram (ошибки проглатываются). message_id сохраняем —
+    // очередь допишет в это же сообщение «создана в Yume» со ссылкой.
+    const tg = await notifyNewBooking(newBookingNotice(created));
+    await prisma.booking.update({
+      where: { id: created.id },
+      data: { telegramMessageId: tg.messageId ?? null, crmSyncNextAt: null },
     });
+    kickCrmQueue();
 
     // Set auth cookie if user was created or verified via OTP
     const response = NextResponse.json({
       success: true,
-      bookingId: booking.id,
+      bookingId: created.id,
       newUser,
     });
 

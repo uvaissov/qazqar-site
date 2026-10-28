@@ -81,3 +81,11 @@ test("вопрос после привязки включает неотправ
     userId: "user", requestId: null, status: { in: ["PENDING", "CONFIRMED"] },
   } }));
 });
+
+test("комментарий, собранный при создании заявки, уходит в CRM как есть", async () => {
+  mocks.booking.mockResolvedValue({ ...booking(), crmComment: "Источник: Сайт\nКанал привлечения: google / cpc" });
+  await exportBooking("user", 3466, "booking");
+  expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({
+    comment: "Источник: Сайт\nКанал привлечения: google / cpc",
+  }));
+});
