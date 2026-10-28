@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { hasKazakhTranslation, breadcrumbData, SITE_URL } from "@/lib/seo";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { getBlogPostBySlug } from "@/lib/data/content";
 import { blogPath } from "@/lib/blog-url";
@@ -17,6 +18,8 @@ export async function generateMetadata(props: { params: Params }): Promise<Metad
     return { title: "Not Found" };
   }
 
+  const translated = hasKazakhTranslation(post);
+  if (locale === "kz" && !translated) permanentRedirect(blogPath("ru", slug));
   const isKz = locale === "kz";
   const title = isKz ? post.titleKz || post.titleRu : post.titleRu;
   const description =
@@ -28,7 +31,7 @@ export async function generateMetadata(props: { params: Params }): Promise<Metad
     description,
     alternates: {
       canonical: url,
-      languages: { ru: blogPath("ru", slug), kk: blogPath("kz", slug) },
+      languages: { ru: blogPath("ru", slug), ...(translated && { kk: blogPath("kz", slug) }) },
     },
     openGraph: {
       title,
@@ -51,7 +54,8 @@ export default async function BlogPostPage(props: { params: Params }) {
     notFound();
   }
 
-  const title = locale === "kz" ? post.titleKz || post.titleRu : post.titleRu;
+  if (locale === "kz" && !hasKazakhTranslation(post)) permanentRedirect(blogPath("ru", slug));
+  const title = locale === "kz" ? post.titleKz : post.titleRu;
   const content =
     locale === "kz" ? post.contentKz || post.contentRu : post.contentRu;
   const dateStr = post.createdAt.toLocaleDateString(
@@ -68,6 +72,10 @@ export default async function BlogPostPage(props: { params: Params }) {
           headline: title,
           ...(post.coverImage && { image: post.coverImage }),
           datePublished: post.createdAt.toISOString(),
+          dateModified: post.updatedAt.toISOString(),
+          inLanguage: locale === "kz" ? "kk" : "ru",
+          mainEntityOfPage: `${SITE_URL}${blogPath(locale, slug)}`,
+          publisher: { "@type": "Organization", name: "Qazqar", logo: { "@type": "ImageObject", url: `${SITE_URL}/images/logo.png` } },
           author: post.author
             ? {
                 "@type": "Person",
@@ -76,6 +84,7 @@ export default async function BlogPostPage(props: { params: Params }) {
             : undefined,
         }}
       />
+      <JsonLd data={breadcrumbData([{ name: locale === "kz" ? "Басты бет" : "Главная", path: `/${locale}` }, { name: "Блог", path: blogPath(locale) }, { name: title, path: blogPath(locale, slug) }])} />
       <main className="min-h-screen bg-gray-50">
         {/* Cover image */}
         <div className="w-full bg-gray-100">
@@ -149,6 +158,7 @@ export default async function BlogPostPage(props: { params: Params }) {
               [&_img]:rounded-lg [&_img]:my-6"
             dangerouslySetInnerHTML={{ __html: content }}
           />
+
 
           {/* Back link at bottom */}
           <div className="mt-10 pt-6 border-t border-gray-200">

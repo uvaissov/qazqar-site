@@ -18,15 +18,15 @@ const legacyRedirects: [source: string, destination: string][] = [
   ["/ru/p/:path*", "/p/:path*"],
   ["/kz/p/:slug", "/kz/blog/:slug"],
   // Каталог: /show/{id} — id «марки» старого бэкенда, лендинги — модель+год.
-  // Новые авто адресуются по госномеру, поэтому ведём в каталог.
+  // Для действующих моделей — постоянный лендинг; отсутствующие модели — каталог.
   ["/catalog", "/ru/catalog"],
   ["/show/:id", "/ru/catalog"],
-  ["/accent-2015", "/ru/catalog"],
-  ["/accent-2023", "/ru/catalog"],
-  ["/elantra-2023", "/ru/catalog"],
+  ["/accent-2015", "/ru/cars/accent"],
+  ["/accent-2023", "/ru/cars/accent"],
+  ["/elantra-2023", "/ru/cars/elantra"],
   ["/camry-2016", "/ru/catalog"],
-  ["/sonata-2022", "/ru/catalog"],
-  ["/tucson-2023", "/ru/catalog"],
+  ["/sonata-2022", "/ru/cars/sonata"],
+  ["/tucson-2023", "/ru/cars/tucson"],
   ["/k5-2021", "/ru/catalog"],
   // Статичные страницы
   ["/oferta", "/ru/terms"],
@@ -42,6 +42,8 @@ const legacyRedirects: [source: string, destination: string][] = [
 ];
 
 const nextConfig: NextConfig = {
+  // Resolve canonical metadata and missing-translation redirects before headers are sent.
+  htmlLimitedBots: /.*/,
   // Прод-сборка не должна падать на style-линте (no-explicit-any и т.п.).
   // Линт остаётся отдельным гейтом (npm run lint), на рантайм не влияет.
   eslint: {

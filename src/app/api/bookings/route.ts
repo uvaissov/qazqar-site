@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { isCarPublic } from "@/lib/data/cars";
+import { isCarPublic, BLOCKING_BOOKING_STATUSES } from "@/lib/data/cars";
 import { getSession, signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
-import { yumeApi, YumeApiError } from "@/lib/yume/api";
-import { BookingStatus } from "@/generated/prisma/enums";
+import { YumeApiError } from "@/lib/yume/api";
+import { resolveClient } from "@/lib/yume/resolve-client";
+import { createCrmBooking } from "@/lib/yume/create-booking";
 import { notifyNewBooking } from "@/lib/telegram/notify";
 import { detectBookingSource, BOOKING_SOURCE_LABELS } from "@/lib/booking-source";
 import { normalizePhone } from "@/lib/phone";
@@ -141,6 +142,14 @@ export async function POST(request: Request) {
 
     // Build CRM comment: источник заявки + адреса
     const crmCommentParts: string[] = [`Источник: ${BOOKING_SOURCE_LABELS[source]}`];
+    // Bounded acquisition labels only; no referrer query strings or client identifiers.
+    if (source === "SITE" && body.attribution && typeof body.attribution === "object") {
+      const value = (key: string) => typeof body.attribution[key] === "string"
+        ? body.attribution[key].replace(/[^a-zA-Z0-9_. /-]/g, "").slice(0, key === "landingPath" ? 200 : 100) : "";
+      const acquisition = [value("source"), value("medium"), value("campaign")].filter(Boolean).join(" / ");
+      if (acquisition) crmCommentParts.push(`Канал привлечения: ${acquisition}`);
+      if (value("landingPath")) crmCommentParts.push(`Страница входа: ${value("landingPath")}`);
+    }
     if (pickupAddressName) crmCommentParts.push(`Адрес подачи: ${pickupAddressName}`);
     if (returnAddressName) crmCommentParts.push(`Адрес возврата: ${returnAddressName}`);
 
@@ -160,74 +169,31 @@ export async function POST(request: Request) {
     let requestId: number | undefined;
     const user = userId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
 
-    if (user?.clientId && car.inventoryId) {
-      // startDate/endDate already in "YYYY-MM-DD HH:MM" format from form
-      const crmStart = startDate;
-      const crmEnd = endDate;
-
-      // Заявка в CRM создаётся без авто, машина привязывается вторым вызовом.
-      // Если второй шаг упал, пустую заявку надо отменить — иначе в CRM
-      // копятся заявки без авто (как #2728 после смены роутов 16.09.2026),
-      // а менеджер видит их как «созданные».
-      let orphanRequestId: number | undefined;
+    // В том числе аккаунты из быстрой регистрации и ранее не привязанные.
+    if (user && !user.clientId) {
       try {
-        const yumeRequest = await yumeApi.createRequest({
-          client: user.clientId,
-          rent_start: crmStart,
-          rent_end: crmEnd,
+        const clientId = await resolveClient({
+          name: `${user.lastName} ${user.firstName}`.trim(),
+          email: user.email, phone: user.phone, iin: user.iin,
         });
-        orphanRequestId = yumeRequest.id;
+        await prisma.user.updateMany({ where: { id: user.id, clientId: null }, data: { clientId } });
+        user.clientId = (await prisma.user.findUnique({ where: { id: user.id }, select: { clientId: true } }))?.clientId ?? null;
+      } catch (err) {
+        console.error(`[Booking] ${user.id}: failed to link CRM client`, err);
+      }
+    }
 
-        await yumeApi.attachInventory(yumeRequest.id, {
-          inventory: car.inventoryId,
-          // Цена за сутки по ступени сетки — так итог в CRM совпадает с нашим
-          tarif_price: price.pricePerDay,
-          start_at: crmStart,
-          end_at: crmEnd,
+    if (user?.clientId && car.inventoryId) {
+      try {
+        requestId = await createCrmBooking({
+          clientId: user.clientId, inventoryId: car.inventoryId,
+          startDate, endDate, pricePerDay: price.pricePerDay,
+          comment: crmComment, depositAmount: withDeposit === false ? noDepositSurcharge : depositAmount,
+          withDeposit: withDeposit !== false,
         });
-        orphanRequestId = undefined;
-
-        await yumeApi.saveRequest(yumeRequest.id, {
-          rent_start: crmStart,
-          rent_end: crmEnd,
-        });
-
-        // Add address info as comment to CRM request
-        if (crmComment) {
-          await yumeApi.addRequestComment(yumeRequest.id, crmComment);
-        }
-
-        // Add deposit / no-deposit surcharge as service to CRM request
-        if (depositAmount > 0) {
-          try {
-            const isNoDeposit = withDeposit === false;
-            await yumeApi.addRequestService({
-              request: yumeRequest.id,
-              service: isNoDeposit ? 5 : 15,
-              tarif_price: (isNoDeposit ? noDepositSurcharge : depositAmount).toString(),
-              start_at: crmStart,
-              end_at: crmEnd,
-            });
-          } catch (depositErr) {
-            console.error("[Yume] Failed to add deposit service:", depositErr);
-          }
-        }
-
-        requestId = yumeRequest.id;
       } catch (err) {
         const message = (err as Error).message || "";
-        // Конфликт расписания: основной сигнал — HTTP 409 от CRM;
-        // текстовая подстрока оставлена как fallback для иных кодов.
-        const isConflict =
-          (err instanceof YumeApiError && err.status === 409) ||
-          message.includes("конфликт") ||
-          message.includes("schedule");
-        if (orphanRequestId) {
-          await yumeApi
-            .cancelRequest(orphanRequestId)
-            .catch((e) => console.error(`[Yume] Failed to cancel orphan request #${orphanRequestId}:`, e));
-        }
-        if (isConflict) {
+        if ((err instanceof YumeApiError && err.status === 409) || message.includes("конфликт") || message.includes("schedule")) {
           return NextResponse.json({ error: "DATE_CONFLICT" }, { status: 409 });
         }
         console.error("[Yume] Failed to create request in CRM:", err);
@@ -245,7 +211,7 @@ export async function POST(request: Request) {
         const conflict = await tx.booking.findFirst({
           where: {
             carId,
-            status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED, BookingStatus.ACTIVE] },
+            status: { in: [...BLOCKING_BOOKING_STATUSES] },
             startDate: { lt: end },
             endDate: { gt: start },
           },

@@ -62,12 +62,19 @@ export default async function AboutSection() {
           {/* Contact Card */}
           <BentoCard colSpan={2} rowSpan={1} className="bg-gradient-to-br from-indigo-500 to-indigo-700 text-white border-none overflow-hidden group">
              <div className="flex items-center gap-6 h-full relative z-10">
-                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <div className="hidden sm:flex shrink-0 w-16 h-16 bg-white/20 rounded-2xl items-center justify-center group-hover:scale-110 transition-transform">
                    <Phone className="w-8 h-8" />
                 </div>
                 <div>
                    <span className="text-indigo-100/70 text-sm font-medium uppercase tracking-wider">{tAboutPage("contacts")}</span>
-                   <h3 className="text-2xl font-black tracking-tight mt-1">{tCommon("phone")}</h3>
+                   <a href={`tel:${tCommon("phone").replace(/\s/g, "")}`} className="block mt-2 hover:text-indigo-100 transition-colors">
+                     <span className="block text-xs text-indigo-100">{tCommon("callLabel")}</span>
+                     <span className="block text-xl font-bold tracking-tight">{tCommon("phone")}</span>
+                   </a>
+                   <a href="https://api.whatsapp.com/send?phone=77763504141" target="_blank" rel="noopener noreferrer" className="block mt-2 hover:text-indigo-100 transition-colors">
+                     <span className="block text-xs text-indigo-100">WhatsApp</span>
+                     <span className="block text-xl font-bold tracking-tight">{tCommon("whatsappPhone")}</span>
+                   </a>
                 </div>
              </div>
              {/* Decorative element */}

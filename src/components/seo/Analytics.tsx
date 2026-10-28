@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef } from "react";
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
+import ContactTracking from "./ContactTracking";
 import type { AnalyticsIds } from "@/lib/analytics";
 
 // Счётчики те же, что стояли на старом qazqar.kz, — чтобы не терять историю.
@@ -40,6 +41,7 @@ export default function Analytics({ gtmId, gaId, yandexMetrikaId }: AnalyticsIds
 
   return (
     <>
+      <ContactTracking metrikaId={Number.isInteger(ymId) && ymId > 0 ? ymId : undefined} />
       {gtmId && (
         <>
           <Script id="gtm" strategy="afterInteractive">

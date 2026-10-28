@@ -1,3 +1,4 @@
+import { localeLanguage } from "@/lib/seo";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
@@ -26,8 +27,8 @@ export async function generateMetadata({
     ? "Qazqar | Астанада жүргізушісіз автокөлік жалға беру"
     : "Qazqar | Прокат автомобилей без водителей в Астане";
   const description = isKz
-    ? "Астана қаласы бойынша автокөліктердің кең ассортименті және қолжетімді бағалар. Тәулігіне 14 000 ₸-ден жалға алу."
-    : "Широкий ассортимент автомобилей и самые доступные цены по всему городу Астана. Аренда от 14 000 ₸/сутки.";
+    ? "Астана қаласы бойынша автокөліктердің кең ассортименті және қолжетімді бағалар. Тарифті өз күндеріңізге есептеңіз."
+    : "Широкий ассортимент автомобилей и самые доступные цены по всему городу Астана. Рассчитайте аренду на ваши даты.";
 
   return {
     metadataBase: new URL("https://qazqar.kz"),
@@ -49,12 +50,7 @@ export async function generateMetadata({
       title,
       description,
     },
-    alternates: {
-      languages: {
-        ru: "/ru",
-        kk: "/kz",
-      },
-    },
+
     verification: getSiteVerification(),
     other: {
       "theme-color": "#06b6d4",
@@ -80,7 +76,7 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
+    <html lang={localeLanguage(locale)}>
       <body className="antialiased">
         <NextIntlClientProvider messages={messages}>
           <LayoutWrapper>{children}</LayoutWrapper>

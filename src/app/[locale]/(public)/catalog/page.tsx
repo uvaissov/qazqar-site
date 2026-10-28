@@ -1,3 +1,6 @@
+import ModelLinks from "@/components/catalog/ModelLinks";
+import { getPublicModels } from "@/lib/data/models";
+import { pageAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getGroupedCars, getBrands } from "@/lib/data/cars";
@@ -7,9 +10,15 @@ import ScrollToTop from "@/components/ui/ScrollToTop";
 import { BentoGrid, BentoCard } from "@/components/ui/BentoGrid";
 import { Car, Search } from "lucide-react";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+  const { locale } = await params;
+  const filters = await searchParams;
   const t = await getTranslations("catalogPage");
   return {
+    alternates: pageAlternates(locale, "/catalog"),
+    ...(Object.values(filters).some(Boolean) && { robots: { index: false, follow: true } }),
+    openGraph: { title: `${t("metaTitle")} | Qazqar`, description: t("metaDescription"), url: `/${locale}/catalog` },
+    twitter: { title: `${t("metaTitle")} | Qazqar`, description: t("metaDescription") },
     title: `${t("metaTitle")} | Qazqar`,
     description: t("metaDescription"),
   };
@@ -37,7 +46,7 @@ export default async function CatalogPage(props: {
     dateTo: searchParams.dateTo || undefined,
   };
 
-  const [cars, brands] = await Promise.all([getGroupedCars(filters), getBrands()]);
+  const [cars, brands, models] = await Promise.all([getGroupedCars(filters), getBrands(), getPublicModels()]);
 
   return (
     <main className="min-h-screen bg-gray-50/50 pb-20">
@@ -76,6 +85,7 @@ export default async function CatalogPage(props: {
         <CatalogGrid cars={cars} dateFrom={filters.dateFrom} dateTo={filters.dateTo} />
       </section>
 
+      <ModelLinks models={models} />
       <ScrollToTop />
     </main>
   );

@@ -3,8 +3,7 @@ import { signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/auth";
 import { verifyOtp } from "@/lib/otp";
 import { validateIin } from "@/lib/iin";
 import { normalizePhone } from "@/lib/phone";
-import { yumeApi } from "@/lib/yume/api";
-import { findClientCandidates } from "@/lib/yume/find-clients";
+import { resolveClient } from "@/lib/yume/resolve-client";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
 
@@ -54,32 +53,8 @@ export async function POST(request: Request) {
 
     // Find or create client in Yume CRM (порядок поиска: ИИН → email → телефон).
     try {
-      const candidates = await findClientCandidates({
-        iin,
-        email,
-        phone: normalizedPhone,
-      });
-      const crmClient = candidates[0];
-
-      if (crmClient) {
-        crmClientId = crmClient.id;
-        console.log(
-          `[Register] ${email}: привязан существующий CRM-клиент #${crmClientId}` +
-            (candidates.length > 1
-              ? ` (кандидатов ${candidates.length}, взят первый)`
-              : "")
-        );
-      } else {
-        // Client not found — create in CRM
-        const created = await yumeApi.createClient({
-          name: `${lastName} ${firstName}`,
-          email,
-          ...(normalizedPhone && { phone: normalizedPhone }),
-          ...(iin && { iin }),
-        });
-        crmClientId = created.id;
-        console.log(`[Register] ${email}: создан новый CRM-клиент #${crmClientId}`);
-      }
+      crmClientId = await resolveClient({ iin, email, phone: normalizedPhone, name: `${lastName} ${firstName}` });
+      console.log(`[Register] ${email}: CRM-клиент #${crmClientId}`);
     } catch (err) {
       // Регистрация продолжится с clientId=null — снаружи это выглядит как
       // «просто не привязалось», поэтому причину пишем явно.

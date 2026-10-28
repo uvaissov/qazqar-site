@@ -19,6 +19,7 @@ type CarWithModel = {
   totalCount?: number;
   photos: { photo: { url: string } }[];
   model: {
+    slug?: string;
     name: string;
     brand: {
       name: string;

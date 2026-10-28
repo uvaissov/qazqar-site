@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 const carInclude = {
@@ -94,7 +95,7 @@ export async function getCars(filters?: {
   });
 }
 
-export async function getGroupedCars(filters?: Parameters<typeof getCars>[0]) {
+export const getGroupedCars = cache(async (filters?: Parameters<typeof getCars>[0]) => {
   const cars = await getCars(filters);
 
   const groups = new Map<string, typeof cars>();
@@ -124,15 +125,15 @@ export async function getGroupedCars(filters?: Parameters<typeof getCars>[0]) {
   });
 
   return grouped;
-}
+});
 
 /** Публичная карточка: архивное (удалённое в CRM) или скрытое авто отдаём как отсутствующее. */
-export async function getCarBySlug(slug: string) {
+export const getCarBySlug = cache(async (slug: string) => {
   return prisma.car.findUnique({
     where: { slug, ...PUBLIC_CAR_WHERE },
     include: carInclude,
   });
-}
+});
 
 export async function getBrands() {
   return prisma.carBrand.findMany({

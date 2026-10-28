@@ -30,6 +30,11 @@ type CrmClientDetail = {
   created_at: string;
 };
 
+type PendingBooking = {
+  id: string; startDate: string; endDate: string; totalPrice: number;
+  car: { number: string; model: { name: string; brand: { name: string } } };
+};
+
 type User = {
   id: string;
   email: string | null;
@@ -94,6 +99,8 @@ export default function UsersList({ users, canManageRoles }: { users: User[]; ca
     }
   }
   const [linkModal, setLinkModal] = useState<{ userId: string; candidates: CrmCandidate[] } | null>(null);
+  const [exportModal, setExportModal] = useState<{ userId: string; clientId: number; bookings: PendingBooking[] } | null>(null);
+  const [exportError, setExportError] = useState(false);
   const [clientCard, setClientCard] = useState<{ userId: string; data: CrmClientDetail } | null>(null);
 
   async function handleUnlinkCrm(userId: string) {
@@ -143,16 +150,59 @@ export default function UsersList({ users, canManageRoles }: { users: User[]; ca
   async function handleSelectCandidate(userId: string, clientId: number) {
     setLoading(userId);
     try {
-      await fetch(`/api/admin/users/${userId}/link-crm`, {
+      const res = await fetch(`/api/admin/users/${userId}/link-crm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientId }),
       });
+      if (!res.ok) { alert(t("error")); return; }
+      const data = await res.json();
       setLinkModal(null);
+      setExportError(false);
+      if (data.pendingBookings?.length) setExportModal({ userId, clientId, bookings: data.pendingBookings });
       router.refresh();
+    } catch {
+      alert(t("error"));
     } finally {
       setLoading(null);
     }
+  }
+
+  async function handlePendingBookings(userId: string) {
+    setLoading(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/link-crm?pendingBookings=true`);
+      if (!res.ok) { alert(t("error")); return; }
+      const data = await res.json();
+      if (!data.currentClientId) { alert(t("error")); return; }
+      if (!data.pendingBookings.length) { alert(t("noPendingBookings")); return; }
+      setClientCard(null);
+      setExportError(false);
+      setExportModal({ userId, clientId: data.currentClientId, bookings: data.pendingBookings });
+    } catch { alert(t("error")); }
+    finally { setLoading(null); }
+  }
+
+  async function handleExportBookings() {
+    if (!exportModal) return;
+    setLoading(exportModal.userId);
+    setExportError(false);
+    try {
+      const res = await fetch(`/api/admin/users/${exportModal.userId}/link-crm`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: exportModal.clientId, bookingIds: exportModal.bookings.map((b) => b.id) }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setExportError(true); return; }
+      const failed = new Set(data.results.filter((r: { success: boolean }) => !r.success).map((r: { bookingId: string }) => r.bookingId));
+      if (failed.size) {
+        setExportModal({ ...exportModal, bookings: exportModal.bookings.filter((b) => failed.has(b.id)) });
+        setExportError(true);
+      } else setExportModal(null);
+      router.refresh();
+    } catch {
+      setExportError(true);
+    } finally { setLoading(null); }
   }
 
   async function handleRoleChange(userId: string, newRole: string) {
@@ -476,6 +526,10 @@ export default function UsersList({ users, canManageRoles }: { users: User[]; ca
                 </div>
               )}
 
+              <button onClick={() => handlePendingBookings(clientCard.userId)} disabled={loading === clientCard.userId} className="w-full rounded-lg bg-cyan-600 py-2 text-sm font-medium text-white disabled:opacity-50">
+                {t("exportBookingsCreate")}
+              </button>
+
               <div className="border-t border-gray-100 pt-3 flex gap-2">
                 <button
                   onClick={() => {
@@ -495,6 +549,30 @@ export default function UsersList({ users, canManageRoles }: { users: User[]; ca
                   {t("unlinkCrm")}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {exportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-3 text-lg font-semibold text-gray-900">{t("exportBookingsTitle")}</h3>
+            <p className="mb-4 text-sm text-gray-600">{t("exportBookingsQuestion", { clientId: exportModal.clientId })}</p>
+            <div className="max-h-64 space-y-3 overflow-y-auto">
+              {exportModal.bookings.map((b) => (
+                <div key={b.id} className="rounded-lg border border-gray-200 p-3 text-sm">
+                  <p className="font-medium">{b.car.model.brand.name} {b.car.model.name} · {b.car.number}</p>
+                  <p>{new Date(b.startDate).toLocaleString(dateLocale, { timeZone: "Asia/Almaty" })} — {new Date(b.endDate).toLocaleString(dateLocale, { timeZone: "Asia/Almaty" })}</p>
+                  <p>{b.totalPrice.toLocaleString()} ₸</p>
+                  {new Date(b.endDate) <= new Date() && <p className="mt-1 text-amber-700">{t("exportBookingPastDates")}</p>}
+                </div>
+              ))}
+            </div>
+            {exportError && <p role="alert" className="mt-3 text-sm text-red-600">{t("exportBookingsError")}</p>}
+            <div className="mt-5 flex gap-3">
+              <button disabled={loading === exportModal.userId} onClick={() => setExportModal(null)} className="flex-1 rounded-lg border border-gray-300 py-2 disabled:opacity-50">{t("exportBookingsLater")}</button>
+              <button disabled={loading === exportModal.userId} onClick={handleExportBookings} className="flex-1 rounded-lg bg-cyan-600 py-2 text-white disabled:opacity-50">{loading === exportModal.userId ? "..." : t("exportBookingsCreate")}</button>
             </div>
           </div>
         </div>

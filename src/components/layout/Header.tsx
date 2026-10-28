@@ -64,7 +64,8 @@ export default function Header() {
               href={`tel:${tCommon("phone").replace(/\s/g, "")}`}
               className="text-sm font-medium text-gray-700 hover:text-cyan-500 transition-colors"
             >
-              {tCommon("phone")}
+              <span className="block text-xs text-gray-500">{tCommon("callLabel")}</span>
+              <span className="block whitespace-nowrap">{tCommon("phone")}</span>
             </a>
 
             <LanguageSwitcher />

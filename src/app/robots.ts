@@ -1,14 +1,9 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: ["/api/", "/admin/", "/cabinet/"],
-      },
-    ],
-    sitemap: "https://qazqar.kz/sitemap.xml",
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/api/", "/admin/", "/cabinet/", "/ru/admin", "/kz/admin", "/ru/cabinet", "/kz/cabinet"] }],
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

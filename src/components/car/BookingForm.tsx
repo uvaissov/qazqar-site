@@ -1,5 +1,8 @@
 "use client";
 
+import { captureAcquisition } from "@/lib/acquisition";
+import { trackEvent } from "@/lib/analytics-events";
+
 import { useState, useEffect, useRef } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import { CheckCircle2, AlertCircle, Calendar, Send, MapPin } from "lucide-react";
@@ -282,6 +285,7 @@ export default function BookingForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         carId,
+        attribution: captureAcquisition(),
         customerName: name,
         customerPhone: phone,
         customerEmail: email || undefined,
@@ -314,6 +318,7 @@ export default function BookingForm({
       return;
     }
 
+    trackEvent("generate_lead", { lead_type: "booking", car_id: carId });
     setSuccess(true);
     setIsNewUser(!!data.newUser);
     setNeedsOtp(false);
@@ -621,7 +626,7 @@ export default function BookingForm({
              <div className="flex gap-3">
                <DatePicker
                  selected={startDate}
-                 onChange={(date) => {
+                 onChange={(date: Date | null) => {
                    setStartDate(date);
                    if (date && endDate && date > endDate) setEndDate(null);
                  }}
@@ -653,7 +658,7 @@ export default function BookingForm({
              <div className="flex gap-3">
                <DatePicker
                  selected={endDate}
-                 onChange={(date) => setEndDate(date)}
+                 onChange={(date: Date | null) => setEndDate(date)}
                  dateFormat="dd.MM.yyyy"
                  minDate={startDate || today}
                  locale={dpLocale}

@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { Transmission, FuelType } from "@/generated/prisma/enums";
 import { Users, Gauge, Wind, Fuel, Calendar, Droplet, CarFront, Cog } from "lucide-react";
 
@@ -22,6 +22,7 @@ type CarSpecsProps = {
 
 export default async function CarSpecs({ car }: CarSpecsProps) {
   const t = await getTranslations("carDetail");
+  const locale = await getLocale();
 
   const specs = [
     { label: t("brand"), value: car.model.brand.name, icon: <CarFront className="w-5 h-5" /> },
@@ -50,13 +51,13 @@ export default async function CarSpecs({ car }: CarSpecsProps) {
         </div>
         <div className="text-right">
           <p className="text-3xl font-black text-cyan-600">
-            {car.pricePerDay.toLocaleString()} ₸ <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">/ сутки</span>
+            {car.pricePerDay.toLocaleString(locale === "kz" ? "kk-KZ" : "ru-RU")} <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">{t("perDay")}</span>
           </p>
         </div>
       </div>
 
       {/* Specs Grid */}
-      <h3 className="text-xl font-black text-gray-900 mb-4 px-2 tracking-tight">Характеристики</h3>
+      <h3 className="text-xl font-black text-gray-900 mb-4 px-2 tracking-tight">{t("specsTitle")}</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {specs.map((spec) => (
           <div

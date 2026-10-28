@@ -7,15 +7,18 @@ import BlogCard from "@/components/blog/BlogCard";
 
 type Params = Promise<{ locale: string }>;
 
-export async function generateMetadata(props: { params: Params }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Params; searchParams: Promise<{ page?: string }> }): Promise<Metadata> {
   const { locale } = await props.params;
+  const { page: rawPage } = await props.searchParams;
+  const page = Math.max(1, Math.floor(Number(rawPage) || 1));
+  const suffix = page > 1 ? `?page=${page}` : "";
   const t = await getTranslations({ locale, namespace: "blog" });
   return {
     title: `${t("title")} | Qazqar`,
     description: t("subtitle"),
     alternates: {
-      canonical: blogPath(locale),
-      languages: { ru: blogPath("ru"), kk: blogPath("kz") },
+      canonical: `${blogPath(locale)}${suffix}`,
+      languages: page === 1 ? { ru: blogPath("ru"), kk: blogPath("kz") } : {},
     },
   };
 }
@@ -29,8 +32,8 @@ export default async function BlogPage(props: {
   const searchParams = await props.searchParams;
   const t = await getTranslations("blog");
 
-  const page = Math.max(1, Number(searchParams.page) || 1);
-  const { posts, totalPages } = await getBlogPosts(page);
+  const page = Math.max(1, Math.floor(Number(searchParams.page) || 1));
+  const { posts, totalPages } = await getBlogPosts(page, 9, locale);
 
   return (
     <main className="min-h-screen bg-gray-50">

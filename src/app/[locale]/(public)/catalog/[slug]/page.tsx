@@ -1,3 +1,4 @@
+import { pageAlternates, breadcrumbData, SITE_URL } from "@/lib/seo";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getCarBySlug, getSimilarCars, getCarImages } from "@/lib/data/cars";
@@ -18,7 +19,7 @@ export async function generateMetadata({
 }) {
   const { locale, slug } = await params;
   const car = await getCarBySlug(slug);
-  if (!car) return {};
+  if (!car) notFound();
 
   const brandModel = `${car.model.brand.name} ${car.model.name}`;
   const title =
@@ -27,8 +28,8 @@ export async function generateMetadata({
       : `${brandModel} ${car.year} — Аренда в Астане | Qazqar`;
   const description =
     locale === "kz"
-      ? `${brandModel} жалға алу | Qazqar`
-      : `Аренда ${brandModel} в Астане | Qazqar`;
+      ? `${brandModel} ${car.year}: тәулігіне ${car.pricePerDay.toLocaleString("kk-KZ")} ₸. Мерзім бойынша тарифтер мен жалдау шарттарын қарап, күндеріңізге есеп алыңыз.`
+      : `Аренда ${brandModel} ${car.year} в Астане: ${car.pricePerDay.toLocaleString("ru-RU")} ₸/сутки по базовому тарифу. Тарифы по срокам и расчёт на ваши даты.`;
   return {
     title,
     description,
@@ -36,14 +37,10 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
+      url: `/${locale}/catalog/${car.slug}`,
       images: car.photos.length > 0 ? [{ url: car.photos[0].photo.url }] : [],
     },
-    alternates: {
-      languages: {
-        ru: `/ru/catalog/${car.slug}`,
-        kk: `/kz/catalog/${car.slug}`,
-      },
-    },
+    alternates: pageAlternates(locale, `/catalog/${car.slug}`),
   };
 }
 
@@ -54,7 +51,7 @@ export default async function CarDetailPage({
   params: Promise<{ locale: string; slug: string }>;
   searchParams: Promise<{ dateFrom?: string; dateTo?: string }>;
 }) {
-  const [{ slug }, searchParams] = await Promise.all([params, searchParamsPromise]);
+  const [{ locale, slug }, searchParams] = await Promise.all([params, searchParamsPromise]);
 
   const car = await getCarBySlug(slug);
   if (!car) notFound();
@@ -81,25 +78,36 @@ export default async function CarDetailPage({
       : null;
 
   const title = `${car.model.brand.name} ${car.model.name} ${car.year}`;
+  const kz = locale === "kz";
+  const description = (kz ? car.descriptionKz : car.descriptionRu) || (kz ? `${title} Астанада жалдау` : `Аренда ${title} в Астане`);
+  const oneDayTier = car.tariff?.active ? car.tariff.tiers.find(tier => tier.minDays <= 1 && tier.maxDays >= 1) : undefined;
+  const price = oneDayTier ? tierPrice(oneDayTier, season) : undefined;
+  const breadcrumbs = [
+    { name: kz ? "Басты бет" : "Главная", path: `/${locale}` },
+    { name: "Каталог", path: `/${locale}/catalog` },
+    { name: `${car.model.brand.name} ${car.model.name}`, path: `/${locale}/cars/${car.model.slug}` },
+    { name: `${title} · ${car.color}`, path: `/${locale}/catalog/${car.slug}` },
+  ];
 
   return (
     <>
-      <JsonLd
+      {price !== undefined && <JsonLd
         data={{
           "@context": "https://schema.org",
           "@type": "Product",
           name: `${car.model.brand.name} ${car.model.name} ${car.year}`,
-          description:
-            car.descriptionRu ||
-            `Аренда ${car.model.brand.name} ${car.model.name} в Астане`,
+          description,
           image: car.photos[0]?.photo.url || undefined,
-          offers: {
-            "@type": "Offer",
-            priceCurrency: "KZT",
-            availability: "https://schema.org/InStock",
-          },
+          ...(price !== undefined && { offers: {
+            "@type": "Offer", url: `${SITE_URL}/${locale}/catalog/${car.slug}`,
+            price, priceCurrency: "KZT",
+            businessFunction: "http://purl.org/goodrelations/v1#LeaseOut",
+            availability: car.status === "AVAILABLE" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            priceSpecification: { "@type": "UnitPriceSpecification", price, priceCurrency: "KZT", unitText: kz ? "тәулік" : "сутки" },
+          } }),
         }}
-      />
+      />}
+      <JsonLd data={breadcrumbData(breadcrumbs)} />
       <main className="min-h-screen bg-gray-50/50 pb-20 relative overflow-hidden">
         {/* Decorative Background */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-cyan-100/30 rounded-full blur-[100px] pointer-events-none -mr-40 -mt-40" />
@@ -112,7 +120,7 @@ export default async function CarDetailPage({
                 {t("catalog")}
               </Link>
               <ChevronRight className="w-3 h-3" />
-              <span className="text-gray-900">{car.model.brand.name} {car.model.name}</span>
+              <Link href={`/cars/${car.model.slug}`} className="text-gray-900 hover:text-cyan-700">{car.model.brand.name} {car.model.name}</Link>
             </nav>
           </div>
         </div>
@@ -124,6 +132,8 @@ export default async function CarDetailPage({
             <div className="lg:col-span-8 space-y-8">
               <CarGallery images={getCarImages(car)} title={title} />
               <CarSpecs car={car} />
+              <p className="px-3 text-gray-700">{description}</p>
+              <div className="flex gap-4 px-3 text-cyan-800 underline"><Link href="/terms">{kz ? "Жалдау шарттары" : "Условия аренды"}</Link><Link href="/about">{kz ? "Мекенжай және байланыс" : "Адрес и контакты"}</Link></div>
             </div>
 
             {/* Right column: Booking form (Sticky) */}

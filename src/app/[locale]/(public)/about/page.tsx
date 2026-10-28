@@ -1,15 +1,23 @@
+import { BUSINESS, businessData, businessProfiles } from "@/lib/business";
+import JsonLd from "@/components/seo/JsonLd";
+import { pageAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations("aboutPage");
   return {
+    alternates: pageAlternates(locale, "/about"),
+    openGraph: { title: `${t("title")} | Qazqar`, description: t("subtitle"), url: `/${locale}/about` },
+    twitter: { title: `${t("title")} | Qazqar`, description: t("subtitle") },
     title: `${t("title")} | Qazqar`,
     description: t("subtitle"),
   };
 }
 
-export default async function AboutPage() {
+export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const t = await getTranslations("aboutPage");
   const tCommon = await getTranslations("common");
 
@@ -22,6 +30,7 @@ export default async function AboutPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <JsonLd data={businessData()} />
       {/* Page header */}
       <section className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -82,7 +91,7 @@ export default async function AboutPage() {
                     <PhoneIcon />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">{t("phone")}</p>
+                    <p className="text-sm text-gray-500">{tCommon("callLabel")}</p>
                     <a
                       href={`tel:${tCommon("phone").replace(/\s/g, "")}`}
                       className="text-gray-900 font-medium hover:text-cyan-500 transition-colors"
@@ -92,6 +101,18 @@ export default async function AboutPage() {
                   </div>
                 </div>
 
+                <div className="pl-13">
+                  <p className="text-sm text-gray-500">WhatsApp</p>
+                  <a
+                    href="https://api.whatsapp.com/send?phone=77763504141"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-green-600 font-medium hover:text-green-500 transition-colors"
+                  >
+                    {tCommon("whatsappPhone")}
+                  </a>
+                </div>
+
                 {/* Address */}
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-50 flex items-center justify-center text-cyan-500">
@@ -99,10 +120,14 @@ export default async function AboutPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 mb-0.5">
-                      {t("address")}
+                      {locale === "kz" ? BUSINESS.addressKz : BUSINESS.address}
+                    </p>
+                    <p className="mt-2"><a href={BUSINESS.twoGisUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-700 underline">{locale === "kz" ? "2GIS арқылы бағыт" : "Маршрут в 2GIS"}</a>
                     </p>
                   </div>
                 </div>
+
+                {businessProfiles().filter(url => url !== BUSINESS.twoGisUrl).map(url => <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block text-cyan-700 underline">{new URL(url).hostname}</a>)}
 
                 {/* Working hours */}
                 <div className="flex items-start gap-3">

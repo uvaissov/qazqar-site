@@ -1,9 +1,14 @@
+import { pageAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations("terms");
   return {
+    alternates: pageAlternates(locale, "/terms"),
+    openGraph: { title: `${t("title")} | Qazqar`, description: t("subtitle"), url: `/${locale}/terms` },
+    twitter: { title: `${t("title")} | Qazqar`, description: t("subtitle") },
     title: `${t("title")} | Qazqar`,
     description: t("subtitle"),
   };

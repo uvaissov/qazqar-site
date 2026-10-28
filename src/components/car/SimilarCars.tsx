@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import CarCard from "@/components/ui/CarCard";
-import type { Transmission } from "@/generated/prisma/enums";
+import type { Transmission, CarStatus } from "@/generated/prisma/enums";
 
 type CarWithModel = {
   id: string;
@@ -9,10 +9,14 @@ type CarWithModel = {
   pricePerDay: number;
   color: string;
   transmission: Transmission;
+  status: CarStatus;
+  availableFrom: string | Date | null;
+  nextBookingAt: string | Date | null;
   seats: number;
   hasAC: boolean;
   photos: { photo: { url: string } }[];
   model: {
+    slug?: string;
     name: string;
     brand: {
       name: string;

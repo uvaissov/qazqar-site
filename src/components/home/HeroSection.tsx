@@ -1,19 +1,21 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { BentoGrid, BentoCard } from "@/components/ui/BentoGrid";
 import { Car, ShieldCheck, Zap, Clock } from "lucide-react";
+import AppDownloadLinks from "@/components/ui/AppDownloadLinks";
 
-export default async function HeroSection() {
+export default async function HeroSection({ minPrice }: { minPrice: number | null }) {
+  const locale = await getLocale();
   const t = await getTranslations("hero");
   const tAbout = await getTranslations("aboutPage");
 
   return (
     <section className="py-12 md:py-20 bg-gray-50/50 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4">
-        <BentoGrid className="md:auto-rows-[240px]">
+        <BentoGrid className="md:grid-rows-[repeat(2,minmax(240px,auto))] md:auto-rows-auto">
           {/* Main Content Card */}
           <BentoCard colSpan={3} rowSpan={2} className="bg-gradient-to-br from-cyan-600 to-cyan-800 text-white border-none">
-            <div className="h-full flex flex-col justify-center max-w-2xl">
+            <div className="relative z-10 h-full flex flex-col justify-center max-w-2xl">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 {t("title")}
               </h1>
@@ -35,6 +37,7 @@ export default async function HeroSection() {
                   {tAbout("whyUs")}
                 </a>
               </div>
+              <AppDownloadLinks className="mt-8 border-t border-white/20 pt-5 text-white" />
             </div>
             
             {/* Decorative element */}
@@ -58,8 +61,8 @@ export default async function HeroSection() {
             <div className="w-12 h-12 bg-white text-cyan-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <span className="text-2xl font-bold text-cyan-700">14 000 ₸</span>
-            <span className="text-cyan-600/70 mt-1">от / сутки</span>
+            <span className="text-2xl font-bold text-cyan-700">{minPrice ? `${minPrice.toLocaleString(locale === "kz" ? "kk-KZ" : "ru-RU")} ₸` : "—"}</span>
+            <span className="text-cyan-600/70 mt-1">{t("fromPerDay")}</span>
           </BentoCard>
           
           {/* Extra: Support (Hidden on small screens if needed, but let's keep it) */}
@@ -83,8 +86,8 @@ export default async function HeroSection() {
                   <Zap className="w-8 h-8" />
                 </div>
                 <div>
-                   <h3 className="text-xl font-bold">15 мин</h3>
-                   <p className="text-rose-100/80 text-sm">Оформление</p>
+                   <h3 className="text-xl font-bold">{t("minutes")}</h3>
+                   <p className="text-rose-100/80 text-sm">{t("processing")}</p>
                 </div>
              </div>
           </BentoCard>
@@ -92,8 +95,8 @@ export default async function HeroSection() {
           <BentoCard colSpan={2} rowSpan={1} className="bg-white group overflow-hidden">
              <div className="flex items-center gap-6 h-full">
                 <div className="flex-1">
-                   <h3 className="text-xl font-bold text-gray-900">Без депозита</h3>
-                   <p className="text-gray-500 mt-1 text-sm">Для постоянных клиентов особые условия и отсутствие залога.</p>
+                   <h3 className="text-xl font-bold text-gray-900"><Link href="/rent-without-deposit">{t("noDeposit")}</Link></h3>
+                   <p className="text-gray-500 mt-1 text-sm">{t("noDepositDescription")}</p>
                 </div>
                 <div className="w-24 h-24 bg-gray-100 rounded-2xl flex items-center justify-center group-hover:rotate-12 transition-transform">
                    <ShieldCheck size={48} className="text-gray-300" />

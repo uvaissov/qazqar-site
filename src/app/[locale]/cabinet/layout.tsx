@@ -1,3 +1,5 @@
+import { privateMetadata } from "@/lib/seo";
+export const metadata = privateMetadata;
 import { getSession } from "@/lib/auth";
 import { redirect } from "@/i18n/routing";
 import { getLocale, getTranslations } from "next-intl/server";

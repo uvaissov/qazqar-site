@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { isCarPublic } from "@/lib/data/cars";
+import { isCarPublic, BLOCKING_BOOKING_STATUSES } from "@/lib/data/cars";
 import { isQuoteError, quote } from "@/lib/pricing";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -76,7 +76,7 @@ export async function GET(
     const conflictingBooking = await prisma.booking.findFirst({
       where: {
         carId: id,
-        status: { in: ["CONFIRMED", "ACTIVE"] },
+        status: { in: [...BLOCKING_BOOKING_STATUSES] },
         startDate: { lt: end },
         endDate: { gt: start },
       },

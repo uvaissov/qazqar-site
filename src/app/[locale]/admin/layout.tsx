@@ -1,3 +1,5 @@
+import { privateMetadata } from "@/lib/seo";
+export const metadata = privateMetadata;
 import { getSession } from "@/lib/auth";
 import { isStaffRole } from "@/lib/permissions";
 import { redirect } from "next/navigation";

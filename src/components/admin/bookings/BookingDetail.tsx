@@ -20,6 +20,7 @@ interface BookingWithCar {
   status: string;
   source: string;
   comment: string | null;
+  cancellationReason: string | null;
   depositAmount: number | null;
   depositLabel: string | null;
   withDeposit: boolean;
@@ -67,6 +68,32 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
   const locale = useLocale();
   const dateLocale = locale === "kz" ? "kk-KZ" : "ru-RU";
   const router = useRouter();
+
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const canCancelLocal = booking.requestId === null && ["SITE", "MOBILE"].includes(booking.source) && ["PENDING", "CONFIRMED"].includes(booking.status);
+
+  async function handleCancel() {
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/admin/bookings/${booking.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED", reason: cancelReason }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCancelError(data.error === "BOOKING_IN_CRM" ? t("localCancelInCrm") : data.error === "BOOKING_NOT_CANCELLABLE" ? t("localCancelStatusChanged") : t("localCancelError"));
+        router.refresh();
+        return;
+      }
+      setCancelOpen(false);
+      router.refresh();
+    } catch { setCancelError(t("localCancelError")); }
+    finally { setCancelling(false); }
+  }
 
   // Смена авто: список свободных машин той же группы → PATCH .../car
   const [changeCarOpen, setChangeCarOpen] = useState(false);
@@ -191,7 +218,12 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
           <h2 className="text-lg font-semibold text-gray-900">
             {t("bookingInfo")}
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {canCancelLocal && (
+              <button type="button" onClick={() => { setCancelReason(""); setCancelError(null); setCancelOpen(true); }} className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50">
+                {t("localCancelBooking")}
+              </button>
+            )}
             {booking.requestId != null && (
               <a
                 href={`${CRM_BASE_URL}/${booking.requestId}/all`}
@@ -347,6 +379,13 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
             </div>
           </div>
 
+          {booking.cancellationReason && (
+            <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+              <p className="font-medium">{t("localCancelReason")}</p>
+              <p>{booking.cancellationReason}</p>
+            </div>
+          )}
+
           {/* Timestamps */}
           <div className="mt-6 pt-4 border-t border-gray-100 flex gap-6 text-xs text-gray-400">
             <span>
@@ -359,6 +398,22 @@ export default function BookingDetail({ booking }: BookingDetailProps) {
         </div>
 
       </div>
+
+      {cancelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div role="dialog" aria-modal="true" aria-labelledby="cancel-booking-title" className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 id="cancel-booking-title" className="mb-3 text-lg font-semibold text-gray-900">{t("localCancelBooking")}</h3>
+            <p className="mb-4 text-sm text-gray-600">{t("localCancelConfirm")}</p>
+            <label htmlFor="cancel-booking-reason" className="mb-1 block text-sm text-gray-700">{t("localCancelReasonOptional")}</label>
+            <textarea id="cancel-booking-reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} maxLength={1000} disabled={cancelling} className="w-full rounded-lg border border-gray-300 p-3 text-sm" rows={3} />
+            {cancelError && <p role="alert" className="mt-3 text-sm text-red-600">{cancelError}</p>}
+            <div className="mt-5 flex gap-3">
+              <button type="button" disabled={cancelling} onClick={() => setCancelOpen(false)} className="flex-1 rounded-lg border border-gray-300 py-2 disabled:opacity-50">{t("localCancelKeep")}</button>
+              <button type="button" disabled={cancelling || !canCancelLocal} onClick={handleCancel} className="flex-1 rounded-lg bg-red-600 py-2 text-white disabled:opacity-50">{cancelling ? "..." : t("localCancelBooking")}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Change car modal */}
       {changeCarOpen && (

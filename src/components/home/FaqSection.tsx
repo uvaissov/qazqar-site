@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { ChevronDown, HelpCircle, MessageCircleQuestion } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +9,8 @@ type FaqItem = {
   id: string;
   questionRu: string;
   answerRu: string;
+  questionKz?: string;
+  answerKz?: string;
 };
 
 function FaqAccordionItem({
@@ -20,6 +22,7 @@ function FaqAccordionItem({
   isOpen: boolean;
   onToggle: () => void;
 }) {
+  const isKz = useLocale() === "kz";
   return (
     <div className={cn(
       "group relative glass rounded-3xl transition-all duration-500 overflow-hidden mb-4",
@@ -28,6 +31,8 @@ function FaqAccordionItem({
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={`faq-${item.id}`}
         className="flex items-center justify-between w-full p-6 text-left"
       >
         <div className="flex items-center gap-4">
@@ -41,7 +46,7 @@ function FaqAccordionItem({
              "text-lg font-bold transition-colors",
              isOpen ? "text-cyan-600" : "text-gray-900"
            )}>
-             {item.questionRu}
+             {isKz ? item.questionKz || item.questionRu : item.questionRu}
            </span>
         </div>
         <div className={cn(
@@ -52,6 +57,7 @@ function FaqAccordionItem({
         </div>
       </button>
       <div
+        id={`faq-${item.id}`}
         className={cn(
           "overflow-hidden transition-all duration-500 ease-in-out",
           isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
@@ -59,7 +65,7 @@ function FaqAccordionItem({
       >
         <div className="px-6 pb-6 pt-0 ml-14">
            <div className="h-px w-full bg-gray-100 mb-6" />
-           <p className="text-gray-600 leading-relaxed text-lg">{item.answerRu}</p>
+           <p className="text-gray-600 leading-relaxed text-lg">{isKz ? item.answerKz || item.answerRu : item.answerRu}</p>
         </div>
       </div>
     </div>

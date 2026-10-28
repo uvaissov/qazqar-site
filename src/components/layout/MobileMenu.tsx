@@ -66,7 +66,17 @@ export default function MobileMenu({ open, onClose, isLoggedIn }: MobileMenuProp
             href={`tel:${tCommon("phone").replace(/\s/g, "")}`}
             className="block px-3 py-2 text-gray-700 hover:text-cyan-500 font-medium"
           >
+            <span className="block text-xs text-gray-500">{tCommon("callLabel")}</span>
             {tCommon("phone")}
+          </a>
+          <a
+            href="https://api.whatsapp.com/send?phone=77763504141"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block px-3 py-2 text-green-600 hover:text-green-500 font-medium"
+          >
+            <span className="block text-xs">WhatsApp</span>
+            {tCommon("whatsappPhone")}
           </a>
         </div>
 

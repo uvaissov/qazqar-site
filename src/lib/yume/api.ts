@@ -212,7 +212,13 @@ class YumeApi {
     email?: string;
     iin?: string;
   }): Promise<YumeClient> {
-    return this.request<YumeClient>("POST", `/v1/crm/clients/`, data);
+    // Верхнее поле iin в CRM readOnly: запись идёт в паспорт физлица.
+    const { iin, ...contact } = data;
+    return this.request<YumeClient>("POST", `/v1/crm/clients/`, {
+      ...contact,
+      type: 0,
+      ...(iin && { individual: { iin } }),
+    });
   }
 
   async getClient(clientId: number): Promise<YumeClientDetail> {

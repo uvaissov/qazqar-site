@@ -2,61 +2,29 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { PUBLIC_CAR_WHERE } from "@/lib/data/cars";
 import { blogPath } from "@/lib/blog-url";
+import { hasKazakhTranslation, SITE_URL } from "@/lib/seo";
 
-// Sitemap читает БД (авто, блог) — генерируем в рантайме, а не на сборке,
-// где база недоступна. Иначе `next build` падает на /sitemap.xml.
 export const dynamic = "force-dynamic";
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [cars, blogPosts] = await Promise.all([
-    prisma.car.findMany({
-      where: { status: "AVAILABLE", ...PUBLIC_CAR_WHERE },
-      select: { slug: true, updatedAt: true },
-    }),
-    prisma.blogPost.findMany({
-      where: { published: true },
-      select: { slug: true, updatedAt: true },
-    }),
+  const [cars, models, posts] = await Promise.all([
+    prisma.car.findMany({ where: PUBLIC_CAR_WHERE, select: { slug: true } }),
+    prisma.carModel.findMany({ where: { cars: { some: {} } }, select: { slug: true } }),
+    prisma.blogPost.findMany({ where: { published: true }, select: { slug: true, updatedAt: true, titleKz: true, contentKz: true, contentRu: true } }),
   ]);
-
-  const locales = ["ru", "kz"];
-  const baseUrl = "https://qazqar.kz";
-
-  const staticPages = ["", "/catalog", "/about", "/faq", "/terms"];
-
-  const staticEntries = staticPages.flatMap((page) =>
-    locales.map((locale) => ({
-      url: `${baseUrl}/${locale}${page}`,
-      lastModified: new Date(),
-      changeFrequency: page === "" ? ("daily" as const) : ("weekly" as const),
-      priority: page === "" ? 1 : page === "/catalog" ? 0.9 : 0.7,
-    }))
-  );
-
-  const carEntries = cars.flatMap((car) =>
-    locales.map((locale) => ({
-      url: `${baseUrl}/${locale}/catalog/${car.slug}`,
-      lastModified: car.updatedAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    }))
-  );
-
-  const blogIndexEntries = locales.map((locale) => ({
-    url: `${baseUrl}${blogPath(locale)}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
-
-  const blogEntries = blogPosts.flatMap((post) =>
-    locales.map((locale) => ({
-      url: `${baseUrl}${blogPath(locale, post.slug)}`,
-      lastModified: post.updatedAt,
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    }))
-  );
-
-  return [...staticEntries, ...carEntries, ...blogIndexEntries, ...blogEntries];
+  const entries: MetadataRoute.Sitemap = [];
+  const localized = (path: string) => {
+    const languages = { ru: `${SITE_URL}/ru${path}`, kk: `${SITE_URL}/kz${path}`, "x-default": `${SITE_URL}/ru${path}` };
+    for (const locale of ["ru", "kz"]) entries.push({ url: `${SITE_URL}/${locale}${path}`, alternates: { languages } });
+  };
+  for (const path of ["", "/catalog", "/about", "/faq", "/terms", "/rent-month", "/rent-without-deposit"]) localized(path);
+  for (const model of models) localized(`/cars/${model.slug}`);
+  // Rented cars remain discoverable. Sync timestamps are not content revision dates.
+  for (const car of cars) localized(`/catalog/${car.slug}`);
+  for (const locale of ["ru", "kz"]) entries.push({ url: `${SITE_URL}${blogPath(locale)}`, alternates: { languages: { ru: `${SITE_URL}${blogPath("ru")}`, kk: `${SITE_URL}${blogPath("kz")}` } } });
+  for (const post of posts) {
+    const translated = hasKazakhTranslation(post);
+    const languages = { ru: `${SITE_URL}${blogPath("ru", post.slug)}`, ...(translated && { kk: `${SITE_URL}${blogPath("kz", post.slug)}` }) };
+    for (const locale of translated ? ["ru", "kz"] : ["ru"]) entries.push({ url: `${SITE_URL}${blogPath(locale, post.slug)}`, lastModified: post.updatedAt, alternates: { languages } });
+  }
+  return entries;
 }

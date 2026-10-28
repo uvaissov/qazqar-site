@@ -18,6 +18,7 @@ type CarWithModel = {
   nextBookingAt: string | Date | null;
   photos: { photo: { url: string } }[];
   model: {
+    slug?: string;
     name: string;
     brand: {
       name: string;
@@ -47,6 +48,7 @@ export default async function CarCard({ car, dateFrom, dateTo, availableCount }:
               src={images[0]}
               alt={title}
               fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover group-hover:scale-105 transition-transform duration-700"
             />
           ) : (
@@ -79,7 +81,7 @@ export default async function CarCard({ car, dateFrom, dateTo, availableCount }:
             <span className="text-lg font-black text-cyan-600">
               {car.pricePerDay.toLocaleString()} ₸
             </span>
-            <span className="text-[10px] uppercase tracking-tighter text-gray-400 block -mt-1">/ сутки</span>
+            <span className="text-[10px] uppercase tracking-tighter text-gray-400 block -mt-1">{t("perDay")}</span>
           </div>
         </div>
       </div>
@@ -89,7 +91,7 @@ export default async function CarCard({ car, dateFrom, dateTo, availableCount }:
         <div className="flex justify-between items-start mb-4">
            <div>
               <h3 className="text-xl font-bold text-gray-900 group-hover:text-cyan-600 transition-colors">
-                {title}
+                {car.model.slug ? <Link href={`/cars/${car.model.slug}`}>{title}</Link> : title}
               </h3>
               <p className="text-sm text-gray-400 mt-1 uppercase tracking-widest font-medium">{car.color}</p>
            </div>

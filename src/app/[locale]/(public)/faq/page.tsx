@@ -1,11 +1,16 @@
+import { pageAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { getFaqItems } from "@/lib/data/content";
 import FaqSection from "@/components/home/FaqSection";
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
   const t = await getTranslations("faq");
   return {
+    alternates: pageAlternates(locale, "/faq"),
+    openGraph: { title: `${t("title")} | Qazqar`, description: t("sectionTitle"), url: `/${locale}/faq` },
+    twitter: { title: `${t("title")} | Qazqar`, description: t("sectionTitle") },
     title: `${t("title")} | Qazqar`,
     description: t("sectionTitle"),
   };
